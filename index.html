@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador de Distribuciones de Probabilidad</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="header-container">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div id="dist-icon" class="brand-icon">𝒩</div>
+      <div>
+        <h1 id="main-title">Simulación Distribución Normal</h1>
+        <div class="subtitle" id="main-subtitle">Transformada Inversa — Método Tabla Z</div>
+      </div>
+    </div>
+    
+    <div class="controls-header">
+      <select id="dist-selector" onchange="changeDistribution()">
+        <option value="normal">Distribución Normal</option>
+        <option value="exponencial">Distribución Exponencial</option>
+        <option value="poisson">Distribución Poisson</option>
+      </select>
+      <button class="btn-theme" onclick="toggleTheme()" title="Cambiar tema">🌓</button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" id="tab-btn-formulas" onclick="switchTab('formulas')">📐 Fórmulas</button>
+    <button class="tab" id="tab-btn-sim" onclick="switchTab('sim')">🎲 Simulación</button>
+  </div>
+
+  <div id="view-formulas">
+
+    <div id="formulas-normal" class="dist-section active-dist">
+      <div class="card">
+        <div class="card-title">1. Distribución Normal <span class="badge badge-green">Modelo</span></div>
+        <div class="formula-block">
+          <div class="formula-name">Notación</div>
+          <div class="formula-main"><b>X ~ N(μ, σ²)</b></div>
+          <div class="formula-desc">Se dice que la variable X sigue una distribución Normal con media μ y varianza σ². En la pizarra: <b>μ = 10, σ² = 1</b>.</div>
+        </div>
+
+        <div class="formula-block">
+          <div class="formula-name">Función de densidad de probabilidad (PDF)</div>
+          <div class="formula-main"><b>f(x)</b> = (1 / σ√(2π)) · e<sup>−½((x−μ)/σ)²</sup></div>
+          <div class="formula-desc">Describe la "campana de Gauss". El área bajo la curva entre dos puntos es la probabilidad de que X caiga en ese intervalo.</div>
+          
+          <div class="formula-vars">
+            <div class="var-row"><span class="var-sym">μ</span><span class="var-def">Media o valor esperado. Centro de la distribución.</span></div>
+            <div class="var-row"><span class="var-sym">σ²</span><span class="var-def">Varianza. Mide la dispersión al cuadrado.</span></div>
+            <div class="var-row"><span class="var-sym">σ</span><span class="var-def">Desviación estándar = √σ². Mismas unidades que X.</span></div>
+            <div class="var-row"><span class="var-sym">e</span><span class="var-def">Número de Euler ≈ 2.71828…</span></div>
+            <div class="var-row"><span class="var-sym">π</span><span class="var-def">Pi ≈ 3.14159…</span></div>
+          </div>
+        </div>
+
+        <div class="formula-block">
+          <div class="formula-name">Función de distribución acumulada (CDF) — F(x)</div>
+          <div class="formula-main"><b>F(x)</b> = P(X ≤ x) = ∫<sub>−∞</sub><sup>x</sup> f(t) dt</div>
+          <div class="formula-desc">Es la probabilidad acumulada hasta el valor x. Va de 0 a 1. Esta es la función que se lee en la <b>Tabla Z</b>: dado un valor z, la tabla devuelve F(z) = probabilidad acumulada.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">2. Estandarización (Variable Z) <span class="badge badge-blue">Transformación</span></div>
+        <div class="formula-block blue">
+          <div class="formula-name">Fórmula de estandarización</div>
+          <div class="formula-main"><b>Z</b> = (X<sub>i</sub> − μ) / σ</div>
+          <div class="formula-desc">Convierte cualquier valor X<sub>i</sub> de N(μ, σ²) a su equivalente en la distribución normal estándar N(0,1). Esto permite usar la Tabla Z para cualquier distribución normal.</div>
+          
+          <div class="formula-vars">
+            <div class="var-row"><span class="var-sym">X<sub>i</sub></span><span class="var-def">Valor de la variable con distribución N(μ, σ²).</span></div>
+            <div class="var-row"><span class="var-sym">μ</span><span class="var-def">Media de la distribución original.</span></div>
+            <div class="var-row"><span class="var-sym">σ</span><span class="var-def">Desviación estándar de la distribución original.</span></div>
+            <div class="var-row"><span class="var-sym">Z</span><span class="var-def">Valor estándar, sigue N(0,1). Se busca en la tabla.</span></div>
+          </div>
+        </div>
+
+        <div class="formula-block blue">
+          <div class="formula-name">Fórmula inversa — Fórmula PRINCIPAL (pizarra)</div>
+          <div class="formula-main"><b>X<sub>i</sub> = μ + Z<sub>α</sub> · σ</b></div>
+          <div class="formula-desc">Es exactamente la fórmula encerrada en la pizarra. Despejando X<sub>i</sub> de la estandarización. <b>Sirve para simular</b>: dado un Z<sub>α</sub> obtenido de la tabla, se construye el valor simulado X<sub>i</sub>.</div>
+          
+          <div class="formula-vars">
+            <div class="var-row"><span class="var-sym">X<sub>i</sub></span><span class="var-def">Valor simulado de la distribución N(μ, σ²).</span></div>
+            <div class="var-row"><span class="var-sym">μ</span><span class="var-def">Media teórica definida (en el ejemplo: μ = 10).</span></div>
+            <div class="var-row"><span class="var-sym">Z<sub>α</sub></span><span class="var-def">Valor Z obtenido de la tabla normal estándar correspondiente al número aleatorio r<sub>i</sub>.</span></div>
+            <div class="var-row"><span class="var-sym">σ</span><span class="var-def">Desviación estándar = √σ² (en el ejemplo: σ = √1 = 1).</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">3. Método de la Transformada Inversa <span class="badge badge-amber">Simulación</span></div>
+        <div class="formula-block amber">
+          <div class="formula-name">Principio fundamental</div>
+          <div class="formula-main"><b>X<sub>i</sub> = F⁻¹(r<sub>i</sub>)</b></div>
+          <div class="formula-desc">Si r<sub>i</sub> es un número aleatorio uniforme entre 0 y 1, entonces F⁻¹(r<sub>i</sub>) sigue la distribución deseada. Para la normal: F⁻¹ = Φ⁻¹ = inversa de la tabla Z.</div>
+        </div>
+
+        <div class="formula-block amber">
+          <div class="formula-name">Flujo completo de la simulación (pizarra)</div>
+          <div class="flow">
+            <div class="flow-box"><div class="top">Paso 1</div>r<sub>i</sub> ~ U(0,1)<br><span style="font-size:10px;color:#f59e0b">número aleatorio</span></div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-box"><div class="top">Paso 2</div>F(x) → Z<sub>α</sub><br><span style="font-size:10px;color:#a78bfa">buscar en tabla Z</span></div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-box"><div class="top">Paso 3</div>X<sub>i</sub> = μ + Z<sub>α</sub>·σ<br><span style="font-size:10px;color:#00d4aa">aplicar fórmula</span></div>
+          </div>
+          <div class="formula-desc">El número aleatorio r<sub>i</sub> se interpreta como una probabilidad acumulada F(x). Se busca en la tabla Z el valor Z<sub>α</sub> tal que Φ(Z<sub>α</sub>) = r<sub>i</sub>. Luego se despeja X<sub>i</sub>.</div>
+          
+          <div class="formula-vars">
+            <div class="var-row"><span class="var-sym">r<sub>i</sub></span><span class="var-def">Número pseudoaleatorio uniforme, r<sub>i</sub> ∈ (0,1). Representa F(x).</span></div>
+            <div class="var-row"><span class="var-sym">Φ(z)</span><span class="var-def">Función de distribución acumulada de N(0,1). Es la tabla Z.</span></div>
+            <div class="var-row"><span class="var-sym">Z<sub>α</sub></span><span class="var-def">Φ⁻¹(r<sub>i</sub>) — el valor Z cuya probabilidad acumulada es r<sub>i</sub>. Se lee de la tabla como fila + columna.</span></div>
+            <div class="var-row"><span class="var-sym">X<sub>i</sub></span><span class="var-def">Valor simulado final que sigue la distribución N(μ, σ²).</span></div>
+          </div>
+        </div>
+
+        <div class="formula-block amber">
+          <div class="formula-name">Cómo leer la Tabla Z</div>
+          <div class="formula-desc" style="line-height:1.8">
+            La tabla Z da valores de <b>Φ(z) = F(z)</b> para z ∈ [-3.49, 3.49].<br>
+            • <b>Fila:</b> parte entera + 1er decimal de z (ej: 1.6)<br>
+            • <b>Columna:</b> 2do decimal de z (ej: 0.04)<br>
+            • <b>Suma fila + columna:</b> z completo (ej: 1.6 + 0.04 = <b>1.64</b>)<br>
+            • El valor en la celda = F(z) = probabilidad acumulada<br><br>
+            En simulación se hace al <b>revés</b>: se tiene r<sub>i</sub> y se busca el z que le corresponde.
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">4. Coeficiente de Variación <span class="badge badge-purple">Estadístico</span></div>
+        <div class="formula-block purple">
+          <div class="formula-name">Fórmula (pizarra)</div>
+          <div class="formula-main"><b>Cv = S / |X̄|</b></div>
+          <div class="formula-desc">Mide la dispersión relativa de los datos con respecto a la media. Permite comparar variabilidad entre distribuciones con diferentes unidades o medias. Se expresa como proporción o porcentaje.</div>
+          
+          <div class="formula-vars">
+            <div class="var-row"><span class="var-sym">Cv</span><span class="var-def">Coeficiente de variación. Sin unidades. Un Cv pequeño indica datos concentrados; Cv grande indica alta dispersión.</span></div>
+            <div class="var-row"><span class="var-sym">S</span><span class="var-def">Desviación estándar muestral de los datos simulados X<sub>i</sub>.</span></div>
+            <div class="var-row"><span class="var-sym">|X̄|</span><span class="var-def">Valor absoluto de la media muestral. Se usa el valor absoluto para evitar divisiones por negativo.</span></div>
+          </div>
+        </div>
+
+        <div class="formula-block purple">
+          <div class="formula-name">Desviación estándar muestral (S)</div>
+          <div class="formula-main"><b>S</b> = √[ Σ(X<sub>i</sub> − X̄)² / (n−1) ]</div>
+          <div class="formula-desc">Raíz cuadrada de la varianza muestral. Se divide entre (n−1) para obtener un estimador insesgado de σ.</div>
+          
+          <div class="formula-vars">
+            <div class="var-row"><span class="var-sym">n</span><span class="var-def">Número de observaciones (en la simulación: n = 10).</span></div>
+            <div class="var-row"><span class="var-sym">X̄</span><span class="var-def">Media muestral = (1/n) · Σ X<sub>i</sub></span></div>
+            <div class="var-row"><span class="var-sym">X<sub>i</sub></span><span class="var-def">Cada valor simulado individual.</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">5. Momentos de la Distribución Normal <span class="badge badge-green">Momentos</span></div>
+        <div class="formula-block">
+          <div class="formula-name">Primer momento — Media (E[X])</div>
+          <div class="formula-main"><b>E[X] = μ</b></div>
+          <div class="formula-desc">El valor esperado de X. Para N(μ, σ²) es simplemente μ. En la simulación: E[X] = 10.</div>
+        </div>
+        <div class="formula-block">
+          <div class="formula-name">Segundo momento central — Varianza (Var[X])</div>
+          <div class="formula-main"><b>Var[X] = σ² = E[(X−μ)²]</b></div>
+          <div class="formula-desc">Mide cuánto se alejan los valores de la media en promedio (al cuadrado). En la simulación: σ² = 1.</div>
+        </div>
+        <div class="formula-block">
+          <div class="formula-name">Tercer momento central — Asimetría (Skewness)</div>
+          <div class="formula-main"><b>γ₁ = E[(X−μ)³] / σ³ = 0</b></div>
+          <div class="formula-desc">La distribución normal es perfectamente simétrica, por lo que su asimetría es siempre cero. La curva es idéntica a izquierda y derecha del centro.</div>
+        </div>
+        <div class="formula-block">
+          <div class="formula-name">Cuarto momento central — Curtosis (Kurtosis)</div>
+          <div class="formula-main"><b>γ₂ = E[(X−μ)⁴] / σ⁴ = 3</b></div>
+          <div class="formula-desc">La normal tiene curtosis = 3 (mesocúrtica). La curtosis exceso = γ₂ − 3 = 0. Sirve como referencia para comparar otras distribuciones.</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="formulas-exponencial" class="dist-section">
+      <div class="card">
+        <div class="card-title">1. Distribución Exponencial <span class="badge badge-green">Modelo</span></div>
+        <div class="formula-block">
+          <div class="formula-name">Notación</div>
+          <div class="formula-main"><b>X ~ Exp(λ)</b></div>
+          <div class="formula-desc">Modela el intervalo de tiempo o espacio transcurrido entre eventos consecutivos de un proceso continuo.</div>
+        </div>
+        <div class="formula-block">
+          <div class="formula-name">Función de densidad de probabilidad (PDF)</div>
+          <div class="formula-main"><b>f(x)</b> = λ · e<sup>−λ·x</sup></div>
+          <div class="formula-desc">Representa una curva decreciente asintótica. La probabilidad acumulada decae de forma exponencial a medida que x se aleja del origen.</div>
+          <div class="formula-vars">
+            <div class="var-row"><span class="var-sym">λ</span><span class="var-def">Tasa media de ocurrencia de eventos por unidad de intervalo. (Parámetro Lambda &gt; 0).</span></div>
+            <div class="var-row"><span class="var-sym">x</span><span class="var-def">Variable continua de respuesta temporal o espacial (x ≥ 0).</span></div>
+            <div class="var-row"><span class="var-sym">e</span><span class="var-def">Número de Euler ≈ 2.71828…</span></div>
+          </div>
+        </div>
+        <div class="formula-block">
+          <div class="formula-name">Función de distribución acumulada (CDF) — F(x)</div>
+          <div class="formula-main"><b>F(x)</b> = P(X ≤ x) = 1 − e<sup>−λ·x</sup></div>
+          <div class="formula-desc">Expresa el área integrada bajo f(x) desde cero hasta x. Es la base para realizar el despeje analítico.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">2. Transformación Inversa <span class="badge badge-amber">Simulación</span></div>
+        <div class="formula-block amber">
+          <div class="formula-name">Deducción analítica</div>
+          <div class="formula-main">1 − e<sup>−λ·X<sub>i</sub></sup> = r<sub>i</sub></div>
+          <div class="formula-desc">Igualando la probabilidad acumulada F(x) a un número pseudoaleatorio uniforme r<sub>i</sub> para forzar la correspondencia matemática.</div>
+        </div>
+        <div class="formula-block amber">
+          <div class="formula-name">Fórmula de simulación computacional</div>
+          <div class="formula-main"><b>X<sub>i</sub> = − ln(r<sub>i</sub>) / λ</b></div>
+          <div class="formula-desc">Despejando X<sub>i</sub> se obtiene −ln(1 − r<sub>i</sub>)/λ. Dado que r<sub>i</sub> está uniformemente distribuido en (0,1), la variable complementaria (1 − r<sub>i</sub>) posee idéntica distribución analítica, permitiendo simplificar la fórmula.</div>
+          <div class="formula-vars">
+            <div class="var-row"><span class="var-sym">X<sub>i</sub></span><span class="var-def">Valor simulado final continuo que sigue la distribución Exp(λ).</span></div>
+            <div class="var-row"><span class="var-sym">r<sub>i</sub></span><span class="var-def">Número pseudoaleatorio uniforme generado dinámicamente r<sub>i</sub> ~ U(0,1).</span></div>
+            <div class="var-row"><span class="var-sym">λ</span><span class="var-def">Tasa paramétrica configurada en la entrada del sistema.</span></div>
+            <div class="var-row"><span class="var-sym">ln</span><span class="var-def">Logaritmo natural o base e.</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">3. Coeficiente de Variación <span class="badge badge-purple">Estadístico</span></div>
+        <div class="formula-block purple">
+          <div class="formula-name">Propiedad estructural de la Exponencial</div>
+          <div class="formula-main"><b>Cv = S / |X̄| ≈ 1</b></div>
+          <div class="formula-desc">En una distribución exponencial teórica, la media y la desviación estándar son exactamente equivalentes (1/λ), por lo tanto, su Coeficiente de Variación analítico siempre es unitario (1 o 100%).</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">4. Momentos de la Distribución Exponencial <span class="badge badge-green">Momentos</span></div>
+        <div class="formula-block">
+          <div class="formula-name">Primer momento — Media (E[X])</div>
+          <div class="formula-main"><b>E[X] = 1 / λ</b></div>
+          <div class="formula-desc">Representa el valor esperado o promedio de la variable en el largo plazo.</div>
+        </div>
+        <div class="formula-block">
+          <div class="formula-name">Segundo momento central — Varianza (Var[X])</div>
+          <div class="formula-main"><b>Var[X] = 1 / λ²</b></div>
+          <div class="formula-desc">Medida de dispersión cuadrática de los datos simulados respecto a su centro.</div>
+        </div>
+        <div class="formula-block">
+          <div class="formula-name">Tercer momento central — Asimetría (Skewness)</div>
+          <div class="formula-main"><b>γ₁ = 2</b></div>
+          <div class="formula-desc">La distribución posee una asimetría positiva constante y pronunciada hacia la derecha de la gráfica.</div>
+        </div>
+        <div class="formula-block">
+          <div class="formula-name">Cuarto momento central — Curtosis (Kurtosis)</div>
+          <div class="formula-main"><b>γ₂ = 6</b></div>
+          <div class="formula-desc">Indica una distribución leptocúrtica con colas pesadas. La curtosis exceso es γ₂ − 3 = 3.</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="formulas-poisson" class="dist-section">
+      <div class="card">
+        <div class="card-title">1. Distribución Poisson <span class="badge badge-green">Modelo Discreto</span></div>
+        <div class="formula-block">
+          <div class="formula-name">Notación</div>
+          <div class="formula-main"><b>X ~ Poisson(λ)</b></div>
+          <div class="formula-desc">Modela la cantidad discreta de eventos independientes que ocurren a una tasa constante dentro de un espacio o tiempo determinado.</div>
+        </div>
+        <div class="formula-block">
+          <div class="formula-name">Función de probabilidad de masa (PMF)</div>
+          <div class="formula-main"><b>P(X = k)</b> = (λ<sup>k</sup> · e<sup>−λ</sup>) / k!</div>
+          <div class="formula-desc">Calcula la probabilidad exacta de que ocurran exactamente k eventos en el intervalo.</div>
+          <div class="formula-vars">
+            <div class="var-row"><span class="var-sym">λ</span><span class="var-def">Media de ocurrencias esperadas en el intervalo (Parámetro Lambda &gt; 0).</span></div>
+            <div class="var-row"><span class="var-sym">k</span><span class="var-def">Número entero no negativo de éxitos simulados (k = 0, 1, 2, ...).</span></div>
+            <div class="var-row"><span class="var-sym">k!</span><span class="var-def">Factorial del número k (k · (k-1) · ... · 1).</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">2. Simulación por Producto de Uniformes <span class="badge badge-blue">Algoritmo</span></div>
+        <div class="formula-block blue">
+          <div class="formula-name">Principio del Algoritmo de Knuth</div>
+          <div class="formula-desc">Dado que los tiempos entre eventos siguen un comportamiento exponencial independiente, contar eventos acumulados equivale a multiplicar variables uniformes r<sub>m</sub> consecutivas hasta romper un límite exponencial e<sup>−λ</sup>.</div>
+        </div>
+        <div class="formula-block blue">
+          <div class="formula-name">Flujo iterativo interno de simulación</div>
+          <div class="flow">
+            <div class="flow-box"><div class="top">Paso 1</div>Inicializar<br>P = 1, K = -1</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-box"><div class="top">Paso 2</div>Ciclo de avance<br>K = K + 1, P = P · r<sub>m</sub></div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-box"><div class="top">Paso 3</div>Condición de Parada<br>¿P &lt; e<sup>−λ</sup>? ➔ X<sub>i</sub> = K</div>
+          </div>
+          <div class="formula-desc">El ciclo interno consume un número variable de r<sub>m</sub> por cada elemento X<sub>i</sub> generado. El valor simulado final es el contador K acumulado.</div>
+          <div class="formula-vars">
+            <div class="var-row"><span class="var-sym">X<sub>i</sub></span><span class="var-def">Valor discreto final de éxitos obtenido para la muestra i.</span></div>
+            <div class="var-row"><span class="var-sym">P</span><span class="var-def">Producto acumulado parcial de las variables uniformes generadas en ese turno.</span></div>
+            <div class="var-row"><span class="var-sym">r<sub>m</sub></span><span class="var-def">Números aleatorios uniformes U(0,1) consumidos secuencialmente dentro del bucle interno.</span></div>
+            <div class="var-row"><span class="var-sym">e<sup>−λ</sup></span><span class="var-def">Umbral de corte constante calculado al inicio de la simulación.</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">3. Coeficiente de Variación <span class="badge badge-purple">Estadístico</span></div>
+        <div class="formula-block purple">
+          <div class="formula-name">Fórmula estructural</div>
+          <div class="formula-main"><b>Cv = 1 / √(λ)</b></div>
+          <div class="formula-desc">Debido a que en Poisson la varianza es igual a la media (λ), la desviación estándar es √λ. Al plantear S/|X̄| teóricamente se obtiene 1/√λ, indicando que a mayor cantidad de eventos, la dispersión relativa disminuye.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">4. Momentos de la Distribución Poisson <span class="badge badge-green">Momentos</span></div>
+        <div class="formula-block">
+          <div class="formula-name">Primer momento — Media (E[X])</div>
+          <div class="formula-main"><b>E[X] = λ</b></div>
+          <div class="formula-desc">El número promedio de eventos esperados en el intervalo coincide exactamente con Lambda.</div>
+        </div>
+        <div class="formula-block">
+          <div class="formula-name">Segundo momento central — Varianza (Var[X])</div>
+          <div class="formula-main"><b>Var[X] = λ</b></div>
+          <div class="formula-desc">La dispersión absoluta posee el mismo valor numérico exacto que la media paramétrica.</div>
+        </div>
+        <div class="formula-block">
+          <div class="formula-name">Tercer momento central — Asimetría (Skewness)</div>
+          <div class="formula-main"><b>γ₁ = 1 / √(λ)</b></div>
+          <div class="formula-desc">Posee una asimetría positiva que decrece gradualmente aproximándose a la simetría normal si λ crece.</div>
+        </div>
+        <div class="formula-block">
+          <div class="formula-name">Cuarto momento central — Curtosis (Kurtosis)</div>
+          <div class="formula-main"><b>γ₂ = 3 + 1/λ</b></div>
+          <div class="formula-desc">Mide el achatamiento de la curva discreta. Su curtosis exceso es inversamente proporcional a λ (1/λ).</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div id="view-sim" style="display:none;">
+
+    <div class="card">
+      <div class="card-title" id="inputs-title">Parámetros de Simulación</div>
+      
+      <div id="inputs-normal" class="grid2 dist-section active-dist">
+        <div><label>Media (μ)</label><input type="number" id="norm-mu" value="10" step="1"></div>
+        <div><label>Varianza (σ²)</label><input type="number" id="norm-var" value="1" step="0.1" min="0.01" oninput="updateCalculatedValues()"></div>
+      </div>
+
+      <div id="inputs-exponencial" class="dist-section">
+        <div><label>Tasa Lambda (λ)</label><input type="number" id="exp-lambda" value="2" step="0.1" min="0.001" oninput="updateCalculatedValues()"></div>
+      </div>
+
+      <div id="inputs-poisson" class="dist-section">
+        <div><label>Media Lambda (λ)</label><input type="number" id="poi-lambda" value="4" step="0.5" min="0.01"></div>
+      </div>
+
+      <div style="margin-top:10px;">
+        <label>Número de valores a generar (N)</label>
+        <input type="number" id="n-vals" value="1000" min="1" max="10000" step="1" oninput="updateBtnText()">
+      </div>
+      
+      <div style="margin-top:10px;">
+        <label>Agrupar promedios de m en m (Muestra del TLC)</label>
+        <input type="number" id="subgroup-m" value="5" min="1" max="100" step="1">
+      </div>
+      
+      <div style="margin-top:8px;font-size:12px;color:var(--text-muted);" id="calculated-display"></div>
+      
+      <button class="btn" id="btn-simular" onclick="ejecutarSimulacion()">▶ Generar 1000 valores</button>
+    </div>
+
+    <div class="card" id="results-card" style="display:none;">
+      <div class="card-title" id="results-title">Tabla de simulación</div>
+      <div class="tbl-wrap">
+        <table id="main-table">
+          <thead id="table-head"></thead>
+          <tbody id="table-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card" id="stats-card" style="display:none;">
+      <div class="card-title">Estadísticas — Simulado vs Teórico</div>
+      <div class="stats-grid-header">
+        <div class="stat-header-label">Estadístico</div>
+        <div class="stat-header-sim">Simulado</div>
+        <div class="stat-header-teo">Teórico</div>
+      </div>
+      <div id="stats-rows"></div>
+    </div>
+
+    <div class="card" id="hist-card" style="display:none;">
+      <div class="card-title" id="chart-title">Distribución de las Muestras Individuales</div>
+      <canvas id="hist-canvas"></canvas>
+      <div class="legend" id="hist-legend"></div>
+    </div>
+
+    <div class="card" id="clt-card" style="display:none;">
+      <div class="card-title">Distribución de los Promedios de los Subgrupos (Teorema del Límite Central)</div>
+      <canvas id="clt-canvas"></canvas>
+      <div class="legend" id="clt-legend"></div>
+    </div>
+
+    <div class="card" id="freq-card" style="display:none;">
+      <div class="card-title" id="freq-title">Tabla de Distribución de Frecuencias</div>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Clase / Intervalo</th>
+              <th>Marca de Clase (Xᵢ)</th>
+              <th>Frecuencia Abs. (fᵢ)</th>
+              <th>Frecuencia Acum. (Fᵢ)</th>
+              <th>Frecuencia Rel. (hᵢ)</th>
+              <th>Frecuencia Rel. Acum. (Hᵢ)</th>
+            </tr>
+          </thead>
+          <tbody id="freq-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card" id="export-card" style="display:none;">
+      <div class="card-title">📤 Exportar Datos</div>
+      <button class="btn-outline" onclick="exportToCSV()">⬇ Descargar CSV completo</button>
+      <button class="btn-outline2" onclick="copyToClipboard()">📋 Copiar tabla (para Excel)</button>
+      <div class="copy-msg" id="copy-msg">¡Copiado al portapapeles!</div>
+    </div>
+
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

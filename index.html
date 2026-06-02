@@ -22,6 +22,7 @@
         <option value="normal">Distribución Normal</option>
         <option value="exponencial">Distribución Exponencial</option>
         <option value="poisson">Distribución Poisson</option>
+        <option value="uniforme">Distribución Uniforme</option>
       </select>
       <button class="btn-theme" onclick="toggleTheme()" title="Cambiar tema">🌓</button>
     </div>
@@ -343,6 +344,81 @@
       </div>
     </div>
 
+    <!-- ================= VISTA FORMULAS: UNIFORME ================= -->
+    <div id="formulas-uniforme" class="dist-section">
+      <div class="card">
+        <div class="card-title">1. Distribución Uniforme Continua <span class="badge badge-green">Modelo</span></div>
+        <div class="formula-block">
+          <div class="formula-name">Notación</div>
+          <div class="formula-main"><b>X ~ U(a, b)</b></div>
+          <div class="formula-desc">Distribución donde todos los intervalos de la misma longitud dentro del soporte tienen exactamente la misma probabilidad de ocurrir (probabilidad constante).</div>
+        </div>
+        <div class="formula-block">
+          <div class="formula-name">Función de densidad de probabilidad (PDF)</div>
+          <div class="formula-main"><b>f(x)</b> = 1 / (b − a) &nbsp; para a ≤ x ≤ b</div>
+          <div class="formula-desc">Representa un rectángulo plano y uniforme. La altura es recíproca a la longitud del intervalo para que el área total bajo la curva sea igual a 1.</div>
+        </div>
+        <div class="formula-block">
+          <div class="formula-name">Función de distribución acumulada (CDF) — F(x)</div>
+          <div class="formula-main"><b>F(x)</b> = (x − a) / (b − a)</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">2. Método de la Transformada Inversa <span class="badge badge-amber">Simulación</span></div>
+        <div class="formula-block amber">
+          <div class="formula-name">Deducción analítica</div>
+          <div class="formula-main">(X<sub>i</sub> − a) / (b − a) = r<sub>i</sub></div>
+          <div class="formula-desc">Igualando la CDF lineal al número pseudoaleatorio uniforme r<sub>i</sub> generado por la computadora.</div>
+        </div>
+        <div class="formula-block amber">
+          <div class="formula-name">Fórmula de simulación final</div>
+          <div class="formula-main"><b>X<sub>i</sub> = a + (b − a) · r<sub>i</sub></b></div>
+          <div class="formula-desc">Despejando directamente X<sub>i</sub>. Permite escalar y trasladar el número aleatorio base U(0,1) al rango deseado (a, b).</div>
+          
+          <div class="formula-vars">
+            <div class="card-title" style="margin: 8px 0 4px 0; font-size: 10px;">Definición de Variables:</div>
+            <div class="var-row"><span class="var-sym">X<sub>i</sub></span><span class="var-def">Valor continuo simulado perteneciente al rango [a, b].</span></div>
+            <div class="var-row"><span class="var-sym">r<sub>i</sub></span><span class="var-def">Número pseudoaleatorio uniforme base, r<sub>i</sub> ~ U(0,1).</span></div>
+            <div class="var-row"><span class="var-sym">a</span><span class="var-def">Límite inferior de la distribución (Parámetro de localización mínimo).</span></div>
+            <div class="var-row"><span class="var-sym">b</span><span class="var-def">Límite superior de la distribución (Parámetro de localización máximo).</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">3. Coeficiente de Variación <span class="badge badge-purple">Estadístico</span></div>
+        <div class="formula-block purple">
+          <div class="formula-name">Fórmula estructural</div>
+          <div class="formula-main"><b>Cv = (b − a) / [√3 · (a + b)]</b></div>
+          <div class="formula-desc">Mide la relación entre la dispersión rectangular y su punto medio. Obtiene un valor sin unidades basado en la dispersión interna del soporte.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">4. Momentos de la Distribución Uniforme <span class="badge badge-green">Momentos</span></div>
+        <div class="formula-block">
+          <div class="formula-name">Primer momento — Media (E[X])</div>
+          <div class="formula-main"><b>E[X] = (a + b) / 2</b></div>
+          <div class="formula-desc">Es simplemente el punto medio exacto o centro geométrico del intervalo cerrado.</div>
+        </div>
+        <div class="formula-block">
+          <div class="formula-name">Segundo momento central — Varianza (Var[X])</div>
+          <div class="formula-main"><b>Var[X] = (b − a)² / 12</b></div>
+          <div class="formula-desc">Mide la dispersión cuadrática. El divisor constante 12 surge analíticamente del cálculo integral del segundo momento.</div>
+        </div>
+        <div class="formula-block">
+          <div class="formula-name">Tercer momento central — Asimetría (Skewness)</div>
+          <div class="formula-main"><b>γ₁ = 0</b></div>
+          <div class="formula-desc">Al ser un rectángulo perfectamente chato y equilibrado a ambos lados de la media, su asimetría es nula.</div>
+        </div>
+        <div class="formula-block">
+          <div class="formula-name">Cuarto momento central — Curtosis (Kurtosis)</div>
+          <div class="formula-main"><b>γ₂ = 1.8</b></div>
+          <div class="formula-desc">Tiene una curtosis fija de 1.8 (Platicúrtica o achatada). Su curtosis en exceso es γ₂ − 3 = −1.2.</div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div id="view-sim" style="display:none;">
@@ -361,6 +437,12 @@
 
       <div id="inputs-poisson" class="dist-section">
         <div><label>Media Lambda (λ)</label><input type="number" id="poi-lambda" value="4" step="0.5" min="0.01"></div>
+      </div>
+
+      <!-- Inputs para Uniforme -->
+      <div id="inputs-uniforme" class="grid2 dist-section">
+        <div><label>Límite Inferior (a)</label><input type="number" id="uni-a" value="0" step="1" oninput="updateCalculatedValues()"></div>
+        <div><label>Límite Superior (b)</label><input type="number" id="uni-b" value="10" step="1" oninput="updateCalculatedValues()"></div>
       </div>
 
       <div style="margin-top:10px;">

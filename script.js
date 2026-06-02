@@ -38,6 +38,8 @@ function changeDistribution() {
     icon.textContent = 'ℰ'; title.textContent = 'Simulación Distribución Exponencial'; subtitle.textContent = 'Transformada Inversa — Logarítmica';
   } else if (currentDist === 'poisson') {
     icon.textContent = '𝒫'; title.textContent = 'Simulación Distribución Poisson'; subtitle.textContent = 'Método de Producto Acumulado Uniforme';
+  } else if (currentDist === 'uniforme') {
+    icon.textContent = '𝒰'; title.textContent = 'Simulación Distribución Uniforme'; subtitle.textContent = 'Transformada Inversa — Escalamiento Lineal';
   }
 
   document.querySelectorAll('.dist-section').forEach(el => el.classList.remove('active-dist'));
@@ -64,6 +66,10 @@ function updateCalculatedValues() {
   } else if (currentDist === 'exponencial') {
     const l = parseFloat(document.getElementById('exp-lambda').value) || 2;
     display.innerHTML = `Media Teórica (1/λ) = <span style="color:#0ea5e9;font-family:monospace;">${(1 / l).toFixed(4)}</span>`;
+  } else if (currentDist === 'uniforme') {
+    const a = parseFloat(document.getElementById('uni-a').value) || 0;
+    const b = parseFloat(document.getElementById('uni-b').value) || 10;
+    display.innerHTML = `Media Teórica ((a+b)/2) = <span style="color:#0ea5e9;font-family:monospace;">${((a + b) / 2).toFixed(4)}</span>`;
   } else {
     display.innerHTML = '';
   }
@@ -107,6 +113,7 @@ function poissonPMF(k, lambda) {
   for (let i = 1; i <= k; i++) fact *= i;
   return (Math.pow(lambda, k) * Math.exp(-lambda)) / fact;
 }
+function uniformPDF(x, a, b) { return (x >= a && x <= b) ? (1 / (b - a)) : 0; }
 
 // --- MOTOR DE SIMULACIÓN ---
 function ejecutarSimulacion() {
@@ -165,6 +172,23 @@ function ejecutarSimulacion() {
         tbody.innerHTML += `<tr><td class="col-i">${i}</td><td class="col-ri" style="max-width:250px; overflow:hidden; text-overflow:ellipsis;" title="${r_list.join(', ')}">${r_list.join(', ')}</td><td class="col-z">${p.toFixed(5)}</td><td class="col-xi">${xi}</td></tr>`;
       }
     }
+  } else if (currentDist === 'uniforme') {
+    const a = parseFloat(document.getElementById('uni-a').value) || 0;
+    const b = parseFloat(document.getElementById('uni-b').value) || 10;
+    const diff = b - a;
+    paramsGlobales = { a, b, diff };
+
+    thead.innerHTML = `<tr><th>i</th><th>r<sub>i</sub> U(0,1)</th><th>b − a (Rango)</th><th>X<sub>i</sub> = a + (b−a)·r<sub>i</sub></th></tr>`;
+    
+    for (let i = 1; i <= N; i++) {
+      const ri = Math.random();
+      const xi = a + diff * ri; // Transformada inversa de la uniforme
+      resultados.push({ i, ri, xi, extra: [diff.toFixed(2)] });
+      
+      if (i <= 200) {
+        tbody.innerHTML += `<tr><td class="col-i">${i}</td><td class="col-ri">${ri.toFixed(4)}</td><td class="col-fa">${diff.toFixed(2)}</td><td class="col-xi">${xi.toFixed(4)}</td></tr>`;
+      }
+    }
   }
 
   if (N > 200) {
@@ -188,6 +212,11 @@ function calcularEstadisticasYGrafico(N) {
     tMean = 1 / paramsGlobales.lambda; tVar = 1 / (paramsGlobales.lambda ** 2); tStd = Math.sqrt(tVar); tCv = tStd / tMean;
   } else if (currentDist === 'poisson') {
     tMean = paramsGlobales.lambda; tVar = paramsGlobales.lambda; tStd = Math.sqrt(tVar); tCv = tStd / tMean;
+  } else if (currentDist === 'uniforme') {
+    tMean = (paramsGlobales.a + paramsGlobales.b) / 2;
+    tVar = (paramsGlobales.diff ** 2) / 12;
+    tStd = Math.sqrt(tVar);
+    tCv = tMean !== 0 ? (tStd / Math.abs(tMean)) : 0;
   }
 
   const rows = [
@@ -346,6 +375,9 @@ function reDrawChart() {
     xMin = 0; xMax = Math.max(xMax, 4 / paramsGlobales.lambda);
   } else if (currentDist === 'poisson') {
     xMin = 0; xMax = Math.max(xMax, paramsGlobales.lambda + 4 * Math.sqrt(paramsGlobales.lambda));
+  } else if (currentDist === 'uniforme') {
+    xMin = paramsGlobales.a;
+    xMax = paramsGlobales.b;
   }
 
   const isDiscrete = currentDist === 'poisson';
@@ -402,13 +434,22 @@ function reDrawChart() {
     ctx.fillStyle = '#f59e0b';
   }
 
-  if (currentDist === 'normal' || currentDist === 'exponencial') {
+  // Se modificó esta sección para incluir la curva/línea de la Distribución Uniforme
+  if (currentDist === 'normal' || currentDist === 'exponencial' || currentDist === 'uniforme') {
     const scale = xs.length * bw;
     ctx.beginPath();
     for (let i = 0; i <= 300; i++) {
       const x = xMin + (i / 300) * (xMax - xMin);
-      let y = currentDist === 'normal' ? normalPDF(x, paramsGlobales.mu, paramsGlobales.sigma) : expPDF(x, paramsGlobales.lambda);
-      y *= scale; i === 0 ? ctx.moveTo(tx(x), ty(y)) : ctx.lineTo(tx(x), ty(y));
+      let y = 0;
+      if (currentDist === 'normal') {
+        y = normalPDF(x, paramsGlobales.mu, paramsGlobales.sigma);
+      } else if (currentDist === 'exponencial') {
+        y = expPDF(x, paramsGlobales.lambda);
+      } else if (currentDist === 'uniforme') {
+        y = uniformPDF(x, paramsGlobales.a, paramsGlobales.b);
+      }
+      y *= scale; 
+      i === 0 ? ctx.moveTo(tx(x), ty(y)) : ctx.lineTo(tx(x), ty(y));
     }
     ctx.strokeStyle = '#00d4aa'; ctx.lineWidth = 2; ctx.stroke();
     document.getElementById('hist-legend').innerHTML = `<span style="color:#0ea5e9">●</span> Histograma (Y) &nbsp;&nbsp; <span style="color:#f59e0b">●</span> Puntos (X,Y) &nbsp;&nbsp; <span style="color:#00d4aa">─</span> Curva Teórica`;
@@ -452,7 +493,11 @@ function generarTablaFrecuencias(xs) {
       xMin = paramsGlobales.mu - 4 * paramsGlobales.sigma; xMax = paramsGlobales.mu + 4 * paramsGlobales.sigma;
     } else if (currentDist === 'exponencial') {
       xMin = 0; xMax = Math.max(xMax, 4 / paramsGlobales.lambda);
+    } else if (currentDist === 'uniforme') {
+      xMin = paramsGlobales.a;
+      xMax = paramsGlobales.b;
     }
+
     const bw = (xMax - xMin) / bins;
     for (let i = 0; i < bins; i++) {
       const lower = xMin + i * bw, upper = xMin + (i + 1) * bw;

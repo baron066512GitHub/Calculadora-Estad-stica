@@ -15,13 +15,27 @@ function toggleTheme() {
   }
 }
 
-// --- MANEJO DE PESTAÑAS (FÓRMULAS / SIMULACIÓN) ---
+// --- MANEJO DE PESTAÑAS (FÓRMULAS / SIMULACIÓN / CALCULAR P) ---
 function switchTab(tab) {
   activeTab = tab;
   document.getElementById('tab-btn-formulas').classList.toggle('active', tab === 'formulas');
   document.getElementById('tab-btn-sim').classList.toggle('active', tab === 'sim');
+  document.getElementById('tab-btn-calc').classList.toggle('active', tab === 'calc');
+  
   document.getElementById('view-formulas').style.display = tab === 'formulas' ? 'block' : 'none';
   document.getElementById('view-sim').style.display = tab === 'sim' ? 'block' : 'none';
+  document.getElementById('view-calc').style.display = tab === 'calc' ? 'block' : 'none';
+
+  if (tab === 'calc') {
+    if (currentDist === 'normal') {
+      document.getElementById('calc-warning').style.display = 'none';
+      document.getElementById('calc-content').style.display = 'block';
+      ejecutarCalculadoraPorOpcion(); // <--- REEMPLAZAR AQUÍ
+    } else {
+      document.getElementById('calc-warning').style.display = 'block';
+      document.getElementById('calc-content').style.display = 'none';
+    }
+  }
 }
 
 // --- SELECTOR DE DISTRIBUCIÓN ---
@@ -51,6 +65,10 @@ function changeDistribution() {
 
   updateCalculatedValues();
   updateBtnText();
+
+  if (activeTab === 'calc') {
+    switchTab('calc');
+  }
 }
 
 function updateBtnText() {
@@ -76,6 +94,15 @@ function updateCalculatedValues() {
 }
 
 // --- OPERACIONES MATEMÁTICAS ---
+function erf(x) {
+  const s = x >= 0 ? 1 : -1;
+  x = Math.abs(x);
+  const a1 = 0.254829592, a2 = -0.284496736, a3 = 1.421413741, a4 = -1.453152027, a5 = 1.061405429, p = 0.3275911;
+  const t = 1 / (1 + p * x);
+  const y = 1 - (((((a5 * t + a4) * t + a3) * t + a2) * t + a1) * t * Math.exp(-x * x));
+  return s * y;
+}
+
 function invNormalCDF(p) {
   if (p <= 0) return -Infinity; if (p >= 1) return Infinity;
   const a = [-3.969683028665376e+01, 2.209460984245205e+02, -2.759285104469687e+02, 1.383577518672690e+02, -3.066479806614716e+01, 2.506628277459239e+00];
@@ -182,7 +209,7 @@ function ejecutarSimulacion() {
     
     for (let i = 1; i <= N; i++) {
       const ri = Math.random();
-      const xi = a + diff * ri; // Transformada inversa de la uniforme
+      const xi = a + diff * ri; 
       resultados.push({ i, ri, xi, extra: [diff.toFixed(2)] });
       
       if (i <= 200) {
@@ -242,7 +269,7 @@ function calcularEstadisticasYGrafico(N) {
   generarTablaFrecuencias(xs);
 }
 
-// --- NUEVA FUNCIÓN: HISTOGRAMA DE PROMEDIOS DE SUBGRUPOS (TLC) ---
+// --- HISTOGRAMA DE PROMEDIOS DE SUBGRUPOS (TLC) ---
 function reDrawCLTChart() {
   const xs = resultados.map(r => r.xi);
   if (xs.length === 0) return;
@@ -250,7 +277,6 @@ function reDrawCLTChart() {
   const m = parseInt(document.getElementById('subgroup-m').value) || 5;
   let averages = [];
   
-  // Agrupamiento de m en m y cálculo de promedios de subgrupos
   for (let i = 0; i < xs.length; i += m) {
     if (i + m <= xs.length) {
       const sub = xs.slice(i, i + m);
@@ -271,7 +297,7 @@ function reDrawCLTChart() {
   let xMin = Math.min(...averages), xMax = Math.max(...averages);
   if (xMin === xMax) { xMin -= 1; xMax += 1; }
 
-  const bins = 12; // Los promedios siempre se tratan de manera continua
+  const bins = 12; 
   const bw = (xMax - xMin) / bins;
   const counts = new Array(bins).fill(0);
 
@@ -286,7 +312,6 @@ function reDrawCLTChart() {
   const tx = x => ((x - xMin) / (xMax - xMin)) * (W - paddingLeft - paddingRight) + paddingLeft;
   const ty = y => H - (y / (maxC * 1.2)) * (H - paddingTop - paddingBottom) - paddingBottom;
 
-  // Render eje Y (Frecuencias del TLC)
   ctx.strokeStyle = isDark ? '#1e2d40' : '#cbd5e1'; ctx.lineWidth = 1;
   ctx.fillStyle = isDark ? '#64748b' : '#334155'; ctx.font = '9px monospace';
   ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
@@ -301,7 +326,6 @@ function reDrawCLTChart() {
     }
   }
 
-  // Dibujado de barras de promedios (En tono Púrpura/Amatista)
   for (let i = 0; i < bins; i++) {
     const x = xMin + i * bw;
     const cx = tx(x), cw = Math.max(tx(x + bw) - cx - 2, 2);
@@ -312,7 +336,6 @@ function reDrawCLTChart() {
     ctx.fillStyle = g; ctx.fillRect(cx, by, cw, bh);
   }
 
-  // Coordenadas superiores (X, Y)
   ctx.fillStyle = '#f59e0b'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.font = 'bold 9px monospace';
   for (let i = 0; i < bins; i++) {
     const x = xMin + i * bw;
@@ -326,7 +349,6 @@ function reDrawCLTChart() {
     ctx.fillStyle = '#f59e0b';
   }
 
-  // Ajuste matemático de la curva de densidad Normal teórica para promedios muestrales
   const cltMean = averages.reduce((a, b) => a + b, 0) / averages.length;
   const cltVar = averages.length > 1 ? averages.reduce((a, b) => a + (b - cltMean) ** 2, 0) / (averages.length - 1) : 0.01;
   const cltStd = Math.sqrt(cltVar || 0.01);
@@ -340,12 +362,10 @@ function reDrawCLTChart() {
   }
   ctx.strokeStyle = '#a78bfa'; ctx.lineWidth = 2; ctx.stroke();
 
-  // Ejes estructurales
   ctx.strokeStyle = isDark ? '#1e2d40' : '#cbd5e1'; ctx.lineWidth = 1;
   ctx.beginPath(); ctx.moveTo(paddingLeft, ty(0)); ctx.lineTo(W - paddingRight, ty(0));
   ctx.moveTo(paddingLeft, paddingTop); ctx.lineTo(paddingLeft, ty(0)); ctx.stroke();
   
-  // Ticks eje X
   ctx.fillStyle = isDark ? '#64748b' : '#334155'; ctx.font = '9px monospace'; ctx.textBaseline = 'top';
   for (let i = 0; i <= 6; i++) {
     const val = xMin + (i / 6) * (xMax - xMin);
@@ -434,7 +454,6 @@ function reDrawChart() {
     ctx.fillStyle = '#f59e0b';
   }
 
-  // Se modificó esta sección para incluir la curva/línea de la Distribución Uniforme
   if (currentDist === 'normal' || currentDist === 'exponencial' || currentDist === 'uniforme') {
     const scale = xs.length * bw;
     ctx.beginPath();
@@ -494,10 +513,8 @@ function generarTablaFrecuencias(xs) {
     } else if (currentDist === 'exponencial') {
       xMin = 0; xMax = Math.max(xMax, 4 / paramsGlobales.lambda);
     } else if (currentDist === 'uniforme') {
-      xMin = paramsGlobales.a;
-      xMax = paramsGlobales.b;
+      xMin = paramsGlobales.a; xMax = paramsGlobales.b;
     }
-
     const bw = (xMax - xMin) / bins;
     for (let i = 0; i < bins; i++) {
       const lower = xMin + i * bw, upper = xMin + (i + 1) * bw;
@@ -558,4 +575,242 @@ function copyToClipboard() {
   });
 }
 
+// --- MOTOR ANALÍTICO DE LA CALCULADORA NORMAL POR OPCIONES ---
+let calcOpcionActiva = 1; // Opción inicial por defecto: P(X <= a)
+
+function cambiarOpcionCalculadora(opcion) {
+  calcOpcionActiva = opcion;
+  
+  // Actualizar estilos visuales de los botones para reflejar cuál está seleccionado
+  for (let i = 1; i <= 4; i++) {
+    const btn = document.getElementById(`btn-opt-${i}`);
+    if (i === opcion) {
+      btn.style.background = 'rgba(0, 212, 170, 0.15)';
+      btn.style.borderColor = '#00d4aa';
+    } else {
+      btn.style.background = 'transparent';
+      btn.style.borderColor = '';
+    }
+  }
+  
+  ejecutarCalculadoraPorOpcion();
+}
+
+function ejecutarCalculadoraPorOpcion() {
+  if (currentDist !== 'normal') return;
+
+  // Recibir parámetros de forma exclusiva e independiente dentro de este menú
+  const mu = parseFloat(document.getElementById('calc-mu').value) || 10;
+  const sigma = Math.max(0.001, parseFloat(document.getElementById('calc-sigma').value) || 1);
+
+  // Recibir límites de control
+  const a = parseFloat(document.getElementById('calc-a').value) || 0;
+  const b = parseFloat(document.getElementById('calc-b').value) || 0;
+
+  const cdfA = normalCDF(a, mu, sigma);
+  const cdfB = normalCDF(b, mu, sigma);
+
+  let resultadoFinal = 0;
+  let labelTexto = "";
+  let tituloGrafico = "";
+
+  // Separación estricta de cálculos matemáticos y etiquetas por opciones
+  switch (calcOpcionActiva) {
+    case 1:
+      resultadoFinal = cdfA;
+      labelTexto = `P(X ≤ ${a}) [Acumulada Izquierda] =`;
+      tituloGrafico = `Área Sombreada Izquierda hasta a = ${a}`;
+      break;
+    case 2:
+      resultadoFinal = 1 - cdfA;
+      labelTexto = `P(X > ${a}) [Complemento Derecho] =`;
+      tituloGrafico = `Área Sombreada Derecha desde a = ${a}`;
+      break;
+    case 3:
+      resultadoFinal = b >= a ? (cdfB - cdfA) : 0;
+      labelTexto = b >= a ? `P(${a} ≤ X ≤ ${b}) [Intervalo Central] =` : "Error: Límite 'a' debe ser menor o igual a 'b'";
+      tituloGrafico = b >= a ? `Área Sombreada Central entre ${a} y ${b}` : "Error de Intervalo";
+      break;
+    case 4:
+      const pEntre = b >= a ? (cdfB - cdfA) : 0;
+      resultadoFinal = 1 - pEntre;
+      labelTexto = b >= a ? `P(X < ${a} o X > ${b}) [Extremos Fuera de Rango] =` : "Error: Límite 'a' debe ser menor o igual a 'b'";
+      tituloGrafico = b >= a ? `Áreas Extremas Sombreadas Fuera de [${a}, ${b}]` : "Error de Intervalo";
+      break;
+  }
+
+  // Reflejar datos calculados en el DOM
+  document.getElementById('res-calc-label').textContent = labelTexto;
+  document.getElementById('res-calc-value').textContent = (typeof resultadoFinal === 'number') ? resultadoFinal.toFixed(6) : "-";
+  document.getElementById('pdf-graph-title').textContent = `Campana de Densidad (PDF) — ${tituloGrafico}`;
+
+  // Trazar lienzos gráficos basados en la opción activa
+  drawCalcPDF(mu, sigma, a, b);
+  drawCalcCDF(mu, sigma, a, b);
+}
+
+function normalCDF(x, mu, sigma) {
+  return 0.5 * (1 + erf((x - mu) / (sigma * Math.sqrt(2))));
+}
+
+// Gráfico PDF Adaptado para aislar el sombreado según la opción seleccionada
+// Gráfico 1: Función de Densidad de Probabilidad (PDF) con área sombreada dinámica por opción
+// Gráfico 1: Función de Densidad de Probabilidad (PDF) con área sombreada dinámica por opción
+function drawCalcPDF(mu, sigma, a, b) {
+  const canvas = document.getElementById('calc-pdf-canvas');
+  if (!canvas) return;
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr; canvas.height = 150 * dpr;
+  const ctx = canvas.getContext('2d'); ctx.scale(dpr, dpr);
+
+  const W = rect.width, H = 150;
+  const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+
+  const xMin = mu - 4 * sigma, xMax = mu + 4 * sigma;
+  const tx = x => ((x - xMin) / (xMax - xMin)) * (W - 40) + 20;
+  const ty = y => H - (y / (normalPDF(mu, mu, sigma) * 1.1)) * (H - 30) - 20;
+
+  // === ÁREA SOMBREADA DINÁMICA SEGÚN LA OPCIÓN ACTIVA ===
+  ctx.fillStyle = 'rgba(0, 212, 170, 0.2)'; 
+  
+  if (calcOpcionActiva === 1) {
+    // Opción 1: P(X <= a) -> Sombrear desde el extremo izquierdo hasta 'a'
+    ctx.beginPath();
+    ctx.moveTo(tx(xMin), ty(0));
+    const step = (a - xMin) / 100;
+    for (let x = xMin; x <= a; x += step) {
+      ctx.lineTo(tx(x), ty(normalPDF(x, mu, sigma)));
+    }
+    ctx.lineTo(tx(a), ty(0));
+    ctx.closePath();
+    ctx.fill();
+  } 
+  else if (calcOpcionActiva === 2) {
+    // Opción 2: P(X > a) -> Sombrear desde 'a' hasta el extremo derecho
+    ctx.beginPath();
+    ctx.moveTo(tx(a), ty(0));
+    const step = (xMax - a) / 100;
+    for (let x = a; x <= xMax; x += step) {
+      ctx.lineTo(tx(x), ty(normalPDF(x, mu, sigma)));
+    }
+    ctx.lineTo(tx(xMax), ty(0));
+    ctx.closePath();
+    ctx.fill();
+  } 
+  else if (calcOpcionActiva === 3) {
+    // Opción 3: P(a <= X <= b)
+    if (b > a) {
+      ctx.beginPath();
+      ctx.moveTo(tx(a), ty(0));
+      const step = (b - a) / 100;
+      for (let x = a; x <= b; x += step) {
+        ctx.lineTo(tx(x), ty(normalPDF(x, mu, sigma)));
+      }
+      ctx.lineTo(tx(b), ty(0));
+      ctx.closePath();
+      ctx.fill();
+    } else if (Math.abs(a - b) < 0.00001) {
+      // SOLUCIÓN AL CUELGUE: Si son iguales, la probabilidad de un punto continuo es 0 (solo se dibuja una línea sutil)
+      ctx.strokeStyle = 'rgba(0, 212, 170, 0.5)';
+      ctx.beginPath(); ctx.moveTo(tx(a), ty(0)); ctx.lineTo(tx(a), ty(normalPDF(a, mu, sigma))); ctx.stroke();
+    }
+  } 
+  else if (calcOpcionActiva === 4) {
+    // Opción 4: P(X < a o X > b) -> Ambos extremos laterales de forma aislada
+    // Extremo Izquierdo siempre se dibuja
+    ctx.beginPath();
+    ctx.moveTo(tx(xMin), ty(0));
+    const stepLeft = (a - xMin) / 100;
+    for (let x = xMin; x <= a; x += stepLeft) {
+      ctx.lineTo(tx(x), ty(normalPDF(x, mu, sigma)));
+    }
+    ctx.lineTo(tx(a), ty(0));
+    ctx.closePath();
+    ctx.fill();
+
+    // Extremo Derecho solo si b > a, o si son iguales sombrea el resto completo
+    if (b > a || Math.abs(a - b) < 0.00001) {
+      ctx.beginPath();
+      ctx.moveTo(tx(b), ty(0));
+      const stepRight = (xMax - b) / 100;
+      for (let x = b; x <= xMax; x += stepRight) {
+        ctx.lineTo(tx(x), ty(normalPDF(x, mu, sigma)));
+      }
+      ctx.lineTo(tx(xMax), ty(0));
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+
+  // Trazar la curva de la campana (Línea sólida superior)
+  ctx.beginPath();
+  for (let i = 0; i <= 200; i++) {
+    const x = xMin + (i / 200) * (xMax - xMin);
+    i === 0 ? ctx.moveTo(tx(x), ty(normalPDF(x, mu, sigma))) : ctx.lineTo(tx(x), ty(normalPDF(x, mu, sigma)));
+  }
+  ctx.strokeStyle = '#00d4aa'; ctx.lineWidth = 2; ctx.stroke();
+
+  // Líneas indicadoras verticales para los límites 'a' y 'b'
+  ctx.lineWidth = 1;
+  if (a >= xMin && a <= xMax) {
+    ctx.strokeStyle = '#ef4444'; ctx.beginPath(); ctx.moveTo(tx(a), ty(0)); ctx.lineTo(tx(a), ty(normalPDF(a, mu, sigma))); ctx.stroke();
+    ctx.fillStyle = '#ef4444'; ctx.font = '9px monospace'; ctx.fillText(`a=${a}`, tx(a), ty(normalPDF(a, mu, sigma)) - 4);
+  }
+  if ((calcOpcionActiva === 3 || calcOpcionActiva === 4) && b >= xMin && b <= xMax && b >= a) {
+    ctx.strokeStyle = '#ea580c'; ctx.beginPath(); ctx.moveTo(tx(b), ty(0)); ctx.lineTo(tx(b), ty(normalPDF(b, mu, sigma))); ctx.stroke();
+    ctx.fillStyle = '#ea580c'; ctx.font = '9px monospace'; ctx.fillText(`b=${b}`, tx(b), ty(normalPDF(b, mu, sigma)) - 4);
+  }
+
+  // Base Eje X
+  ctx.strokeStyle = isDark ? '#1e2d40' : '#cbd5e1';
+  ctx.beginPath(); ctx.moveTo(0, ty(0)); ctx.lineTo(W, ty(0)); ctx.stroke();
+}
+
+function drawCalcCDF(mu, sigma, a, b) {
+  const canvas = document.getElementById('calc-cdf-canvas');
+  if (!canvas) return;
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr; canvas.height = 150 * dpr;
+  const ctx = canvas.getContext('2d'); ctx.scale(dpr, dpr);
+
+  const W = rect.width, H = 150;
+  const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+
+  const xMin = mu - 4 * sigma, xMax = mu + 4 * sigma;
+  const tx = x => ((x - xMin) / (xMax - xMin)) * (W - 40) + 20;
+  const ty = y => H - y * (H - 30) - 20;
+
+  ctx.beginPath();
+  for (let i = 0; i <= 200; i++) {
+    const x = xMin + (i / 200) * (xMax - xMin);
+    i === 0 ? ctx.moveTo(tx(x), ty(normalCDF(x, mu, sigma))) : ctx.lineTo(tx(x), ty(normalCDF(x, mu, sigma)));
+  }
+  ctx.strokeStyle = '#0ea5e9'; ctx.lineWidth = 2; ctx.stroke();
+
+  ctx.lineWidth = 1; ctx.setLineDash([3, 3]);
+  ctx.strokeStyle = isDark ? '#334155' : '#94a3b8';
+
+  if ((calcOpcionActiva === 1 || calcOpcionActiva === 2 || calcOpcionActiva === 3 || calcOpcionActiva === 4) && a >= xMin && a <= xMax) {
+    const yA = normalCDF(a, mu, sigma);
+    ctx.beginPath(); ctx.moveTo(tx(a), ty(0)); ctx.lineTo(tx(a), ty(yA)); ctx.lineTo(tx(xMin), ty(yA)); ctx.stroke();
+    ctx.fillStyle = '#f59e0b'; ctx.beginPath(); ctx.arc(tx(a), ty(yA), 3, 0, 2 * Math.PI); ctx.fill();
+  }
+  if ((calcOpcionActiva === 3 || calcOpcionActiva === 4) && b >= xMin && b <= xMax && b >= a) {
+    const yB = normalCDF(b, mu, sigma);
+    ctx.beginPath(); ctx.moveTo(tx(b), ty(0)); ctx.lineTo(tx(b), ty(yB)); ctx.lineTo(tx(xMin), ty(yB)); ctx.stroke();
+    ctx.fillStyle = '#f59e0b'; ctx.beginPath(); ctx.arc(tx(b), ty(yB), 3, 0, 2 * Math.PI); ctx.fill();
+  }
+  ctx.setLineDash([]);
+
+  ctx.strokeStyle = isDark ? '#1e2d40' : '#cbd5e1';
+  ctx.beginPath(); ctx.moveTo(0, ty(0)); ctx.lineTo(W, ty(0)); ctx.stroke();
+}
+
+// Inyección final para forzar el encendido del primer botón al iniciar la App
+setTimeout(() => { cambiarOpcionCalculadora(1); }, 100);
+
+
+// Inicialización de la UI
 updateCalculatedValues();

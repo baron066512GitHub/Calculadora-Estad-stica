@@ -522,11 +522,12 @@
   </div>
 
   <div id="view-calc" style="display:none;">
-    <div id="calc-warning" class="card" style="border-left: 3px solid #ef4444;">
-      <p style="font-size:13px; color:var(--text-desc);">⚠️ Esta calculadora analítica está diseñada específicamente para la <b>Distribución Normal</b>. Selecciona la Distribución Normal en el menú superior para activarla.</p>
+    
+    <div id="calc-warning" class="card" style="border-left: 3px solid #ef4444; display:none;">
+      <p style="font-size:13px; color:var(--text-desc);">⚠️ Esta calculadora analítica abarca todas las distribuciones. Selecciona una en el menú superior para activarla.</p>
     </div>
 
-    <div id="calc-content" style="display:none;">
+    <div id="calc-normal-content" style="display:none;">
       <div class="card">
         <div class="card-title">Parámetros de la Distribución Normal</div>
         <div class="grid2">
@@ -557,7 +558,7 @@
       </div>
 
       <div class="card" style="border-left: 4px solid #00d4aa;">
-        <div class="card-title" id="res-calc-title">Resultado Obtenido</div>
+        <div class="card-title" id="res-calc-title">Resultado Obtenido (Normal)</div>
         <div style="display: flex; justify-content: space-between; align-items: center;">
           <div id="res-calc-label" style="font-size: 14px; font-weight: 600; color: var(--text-desc);">P(X ≤ a) =</div>
           <div id="res-calc-value" style="font-family: monospace; color: #00d4aa; font-weight: 700; font-size: 18px;">-</div>
@@ -575,6 +576,155 @@
         </div>
       </div>
     </div>
+
+    <div id="calc-exponencial-content" style="display:none;">
+      <div class="card">
+        <div class="card-title">Parámetros de la Distribución Exponencial</div>
+        <div class="grid2">
+          <div><label>Tasa Lambda (λ)</label><input type="number" id="calc-exp-lambda" value="2" step="0.1" min="0.001" oninput="ejecutarCalculadoraExpPorOpcion()"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Selecciona la Probabilidad a Calcular (x ≥ 0)</div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <input type="number" id="calc-exp-a" value="0.2" step="0.1" min="0" style="width:100px;" oninput="ejecutarCalculadoraExpPorOpcion()">
+            <label style="margin:0;">Valor de límite inferior (a)</label>
+          </div>
+          <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 8px;">
+            <input type="number" id="calc-exp-b" value="0.8" step="0.1" min="0" style="width:100px;" oninput="ejecutarCalculadoraExpPorOpcion()">
+            <label style="margin:0;">Valor de límite superior (b)</label>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; margin-top: 12px;">
+          <button class="btn-outline" id="btn-exp-opt-1" onclick="cambiarOpcionCalculadoraExp(1)" style="margin:0;">Calcular P(X ≤ a)</button>
+          <button class="btn-outline" id="btn-exp-opt-2" onclick="cambiarOpcionCalculadoraExp(2)" style="margin:0;">Calcular P(X > a)</button>
+          <button class="btn-outline" id="btn-exp-opt-3" onclick="cambiarOpcionCalculadoraExp(3)" style="margin:0;">Calcular P(a ≤ X ≤ b)</button>
+          <button class="btn-outline" id="btn-exp-opt-4" onclick="cambiarOpcionCalculadoraExp(4)" style="margin:0;">Calcular P(X < a o X > b)</button>
+        </div>
+      </div>
+
+      <div class="card" style="border-left: 4px solid #00d4aa;">
+        <div class="card-title" id="res-exp-calc-title">Resultado Obtenido (Exponencial)</div>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div id="res-exp-calc-label" style="font-size: 14px; font-weight: 600; color: var(--text-desc);">P(X ≤ a) =</div>
+          <div id="res-exp-calc-value" style="font-family: monospace; color: #00d4aa; font-weight: 700; font-size: 18px;">-</div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="card">
+          <div class="card-title" id="pdf-exp-graph-title">Curva de Densidad (PDF)</div>
+          <canvas id="calc-exp-pdf-canvas" style="height:150px;"></canvas>
+        </div>
+        <div class="card">
+          <div class="card-title">Curva de Distribución Acumulada (CDF)</div>
+          <canvas id="calc-exp-cdf-canvas" style="height:150px;"></canvas>
+        </div>
+      </div>
+    </div>
+    
+    <div id="calc-poisson-content" style="display:none;">
+      <div class="card">
+        <div class="card-title">Parámetros de la Distribución Poisson</div>
+        <div class="grid2">
+          <div><label>Media Lambda (λ)</label><input type="number" id="calc-poi-lambda" value="4" step="0.5" min="0.01" oninput="ejecutarCalculadoraPoiPorOpcion()"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Selecciona la Probabilidad a Calcular (Valores Enteros)</div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <input type="number" id="calc-poi-a" value="2" step="1" min="0" style="width:100px;" oninput="ejecutarCalculadoraPoiPorOpcion()">
+            <label style="margin:0;">Límite inferior (a)</label>
+          </div>
+          <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 8px;">
+            <input type="number" id="calc-poi-b" value="6" step="1" min="0" style="width:100px;" oninput="ejecutarCalculadoraPoiPorOpcion()">
+            <label style="margin:0;">Límite superior (b)</label>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; margin-top: 12px;">
+          <button class="btn-outline" id="btn-poi-opt-1" onclick="cambiarOpcionCalculadoraPoi(1)" style="margin:0;">Calcular P(X ≤ a)</button>
+          <button class="btn-outline" id="btn-poi-opt-2" onclick="cambiarOpcionCalculadoraPoi(2)" style="margin:0;">Calcular P(X > a)</button>
+          <button class="btn-outline" id="btn-poi-opt-3" onclick="cambiarOpcionCalculadoraPoi(3)" style="margin:0;">Calcular P(a ≤ X ≤ b)</button>
+          <button class="btn-outline" id="btn-poi-opt-4" onclick="cambiarOpcionCalculadoraPoi(4)" style="margin:0;">Calcular P(X < a o X > b)</button>
+        </div>
+      </div>
+
+      <div class="card" style="border-left: 4px solid #00d4aa;">
+        <div class="card-title" id="res-poi-calc-title">Resultado Obtenido (Poisson)</div>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div id="res-poi-calc-label" style="font-size: 14px; font-weight: 600; color: var(--text-desc);">P(X ≤ a) =</div>
+          <div id="res-poi-calc-value" style="font-family: monospace; color: #00d4aa; font-weight: 700; font-size: 18px;">-</div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="card">
+          <div class="card-title" id="pdf-poi-graph-title">Probabilidad de Masa (PMF)</div>
+          <canvas id="calc-poi-pdf-canvas" style="height:150px;"></canvas>
+        </div>
+        <div class="card">
+          <div class="card-title">Distribución Acumulada Escalonada (CDF)</div>
+          <canvas id="calc-poi-cdf-canvas" style="height:150px;"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div id="calc-uniforme-content" style="display:none;">
+      <div class="card">
+        <div class="card-title">Parámetros de la Distribución Uniforme</div>
+        <div class="grid2">
+          <div><label>Límite Inferior del rango (α)</label><input type="number" id="calc-uni-min" value="0" step="1" oninput="ejecutarCalculadoraUniPorOpcion()"></div>
+          <div><label>Límite Superior del rango (β)</label><input type="number" id="calc-uni-max" value="10" step="1" oninput="ejecutarCalculadoraUniPorOpcion()"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Selecciona la Probabilidad a Calcular</div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <input type="number" id="calc-uni-a" value="2" step="0.1" style="width:100px;" oninput="ejecutarCalculadoraUniPorOpcion()">
+            <label style="margin:0;">Valor de análisis límite inferior (a)</label>
+          </div>
+          <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 8px;">
+            <input type="number" id="calc-uni-b" value="8" step="0.1" style="width:100px;" oninput="ejecutarCalculadoraUniPorOpcion()">
+            <label style="margin:0;">Valor de análisis límite superior (b)</label>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; margin-top: 12px;">
+          <button class="btn-outline" id="btn-uni-opt-1" onclick="cambiarOpcionCalculadoraUni(1)" style="margin:0;">Calcular P(X ≤ a)</button>
+          <button class="btn-outline" id="btn-uni-opt-2" onclick="cambiarOpcionCalculadoraUni(2)" style="margin:0;">Calcular P(X > a)</button>
+          <button class="btn-outline" id="btn-uni-opt-3" onclick="cambiarOpcionCalculadoraUni(3)" style="margin:0;">Calcular P(a ≤ X ≤ b)</button>
+          <button class="btn-outline" id="btn-uni-opt-4" onclick="cambiarOpcionCalculadoraUni(4)" style="margin:0;">Calcular P(X < a o X > b)</button>
+        </div>
+      </div>
+
+      <div class="card" style="border-left: 4px solid #00d4aa;">
+        <div class="card-title" id="res-uni-calc-title">Resultado Obtenido (Uniforme)</div>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div id="res-uni-calc-label" style="font-size: 14px; font-weight: 600; color: var(--text-desc);">P(X ≤ a) =</div>
+          <div id="res-uni-calc-value" style="font-family: monospace; color: #00d4aa; font-weight: 700; font-size: 18px;">-</div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="card">
+          <div class="card-title" id="pdf-uni-graph-title">Densidad Rectangular (PDF)</div>
+          <canvas id="calc-uni-pdf-canvas" style="height:150px;"></canvas>
+        </div>
+        <div class="card">
+          <div class="card-title">Distribución Acumulada Lineal (CDF)</div>
+          <canvas id="calc-uni-cdf-canvas" style="height:150px;"></canvas>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <script src="script.js"></script>

@@ -27,13 +27,30 @@ function switchTab(tab) {
   document.getElementById('view-calc').style.display = tab === 'calc' ? 'block' : 'none';
 
   if (tab === 'calc') {
+    document.getElementById('calc-warning').style.display = 'none';
+    document.getElementById('calc-normal-content').style.display = 'none';
+    document.getElementById('calc-exponencial-content').style.display = 'none';
+    
+    const poiContent = document.getElementById('calc-poisson-content');
+    if (poiContent) poiContent.style.display = 'none';
+    
+    const uniContent = document.getElementById('calc-uniforme-content');
+    if (uniContent) uniContent.style.display = 'none';
+    
     if (currentDist === 'normal') {
-      document.getElementById('calc-warning').style.display = 'none';
-      document.getElementById('calc-content').style.display = 'block';
-      ejecutarCalculadoraPorOpcion(); // <--- REEMPLAZAR AQUÍ
+      document.getElementById('calc-normal-content').style.display = 'block';
+      ejecutarCalculadoraPorOpcion();
+    } else if (currentDist === 'exponencial') {
+      document.getElementById('calc-exponencial-content').style.display = 'block';
+      ejecutarCalculadoraExpPorOpcion();
+    } else if (currentDist === 'poisson') {
+      if (poiContent) poiContent.style.display = 'block';
+      ejecutarCalculadoraPoiPorOpcion();
+    } else if (currentDist === 'uniforme') {
+      if (uniContent) uniContent.style.display = 'block';
+      ejecutarCalculadoraUniPorOpcion();
     } else {
       document.getElementById('calc-warning').style.display = 'block';
-      document.getElementById('calc-content').style.display = 'none';
     }
   }
 }
@@ -655,7 +672,6 @@ function normalCDF(x, mu, sigma) {
 
 // Gráfico PDF Adaptado para aislar el sombreado según la opción seleccionada
 // Gráfico 1: Función de Densidad de Probabilidad (PDF) con área sombreada dinámica por opción
-// Gráfico 1: Función de Densidad de Probabilidad (PDF) con área sombreada dinámica por opción
 function drawCalcPDF(mu, sigma, a, b) {
   const canvas = document.getElementById('calc-pdf-canvas');
   if (!canvas) return;
@@ -808,8 +824,615 @@ function drawCalcCDF(mu, sigma, a, b) {
   ctx.beginPath(); ctx.moveTo(0, ty(0)); ctx.lineTo(W, ty(0)); ctx.stroke();
 }
 
-// Inyección final para forzar el encendido del primer botón al iniciar la App
-setTimeout(() => { cambiarOpcionCalculadora(1); }, 100);
+// =====================================================================
+// --- MOTOR ANALÍTICO DE LA CALCULADORA EXPONENCIAL POR OPCIONES ---
+// =====================================================================
+
+function expCDF(x, lambda) {
+  return x < 0 ? 0 : 1 - Math.exp(-lambda * x);
+}
+
+function cambiarOpcionCalculadoraExp(opcion) {
+  calcExpOpcionActiva = opcion;
+  
+  for (let i = 1; i <= 4; i++) {
+    const btn = document.getElementById(`btn-exp-opt-${i}`);
+    if (i === opcion) {
+      btn.style.background = 'rgba(0, 212, 170, 0.15)';
+      btn.style.borderColor = '#00d4aa';
+    } else {
+      btn.style.background = 'transparent';
+      btn.style.borderColor = '';
+    }
+  }
+  ejecutarCalculadoraExpPorOpcion();
+}
+
+function ejecutarCalculadoraExpPorOpcion() {
+  if (currentDist !== 'exponencial') return;
+
+  const lambda = Math.max(0.001, parseFloat(document.getElementById('calc-exp-lambda').value) || 2);
+  let a = parseFloat(document.getElementById('calc-exp-a').value) || 0;
+  let b = parseFloat(document.getElementById('calc-exp-b').value) || 0;
+  
+  // Forzar que los valores sean positivos (dominio exponencial x >= 0)
+  if (a < 0) a = 0; 
+  if (b < 0) b = 0;
+
+  const cdfA = expCDF(a, lambda);
+  const cdfB = expCDF(b, lambda);
+
+  let resultadoFinal = 0;
+  let labelTexto = "";
+  let tituloGrafico = "";
+
+  switch (calcExpOpcionActiva) {
+    case 1:
+      resultadoFinal = cdfA;
+      labelTexto = `P(X ≤ ${a}) [Acumulada Izquierda] =`;
+      tituloGrafico = `Área Sombreada desde 0 hasta a = ${a}`;
+      break;
+    case 2:
+      resultadoFinal = 1 - cdfA;
+      labelTexto = `P(X > ${a}) [Decaimiento Derecho] =`;
+      tituloGrafico = `Área Sombreada desde a = ${a} hacia ∞`;
+      break;
+    case 3:
+      resultadoFinal = b >= a ? (cdfB - cdfA) : 0;
+      labelTexto = b >= a ? `P(${a} ≤ X ≤ ${b}) [Intervalo Central] =` : "Error: Límite 'a' debe ser ≤ 'b'";
+      tituloGrafico = b >= a ? `Área Sombreada entre ${a} y ${b}` : "Error de Intervalo";
+      break;
+    case 4:
+      const pEntre = b >= a ? (cdfB - cdfA) : 0;
+      resultadoFinal = 1 - pEntre;
+      labelTexto = b >= a ? `P(X < ${a} o X > ${b}) [Extremos Aislados] =` : "Error: Límite 'a' debe ser ≤ 'b'";
+      tituloGrafico = b >= a ? `Áreas Sombreadas Fuera de [${a}, ${b}]` : "Error de Intervalo";
+      break;
+  }
+
+  document.getElementById('res-exp-calc-label').textContent = labelTexto;
+  document.getElementById('res-exp-calc-value').textContent = (typeof resultadoFinal === 'number') ? resultadoFinal.toFixed(6) : "-";
+  document.getElementById('pdf-exp-graph-title').textContent = `Curva de Densidad (PDF) — ${tituloGrafico}`;
+
+  drawCalcExpPDF(lambda, a, b);
+  drawCalcExpCDF(lambda, a, b);
+}
+
+function drawCalcExpPDF(lambda, a, b) {
+  const canvas = document.getElementById('calc-exp-pdf-canvas');
+  if (!canvas) return;
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr; canvas.height = 150 * dpr;
+  const ctx = canvas.getContext('2d'); ctx.scale(dpr, dpr);
+
+  const W = rect.width, H = 150;
+  const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+
+  // Dominio: Desde 0 hasta un poco más allá del valor máximo analizado para ver la cola
+  const xMin = 0;
+  const xMax = Math.max(a, b, 4 / lambda) * 1.2; 
+  const tx = x => ((x - xMin) / (xMax - xMin)) * (W - 40) + 20;
+  // El pico máximo en PDF exponencial es lambda (en x=0)
+  const ty = y => H - (y / (lambda * 1.1)) * (H - 30) - 20; 
+
+  ctx.fillStyle = 'rgba(0, 212, 170, 0.2)'; 
+  
+  if (calcExpOpcionActiva === 1) {
+    ctx.beginPath(); ctx.moveTo(tx(xMin), ty(0));
+    const step = (a - xMin) / 100;
+    if (step > 0) {
+      for (let x = xMin; x <= a; x += step) ctx.lineTo(tx(x), ty(expPDF(x, lambda)));
+    } else { ctx.lineTo(tx(a), ty(expPDF(a, lambda))); }
+    ctx.lineTo(tx(a), ty(0)); ctx.closePath(); ctx.fill();
+  } 
+  else if (calcExpOpcionActiva === 2) {
+    ctx.beginPath(); ctx.moveTo(tx(a), ty(0));
+    const step = (xMax - a) / 100;
+    for (let x = a; x <= xMax; x += step) ctx.lineTo(tx(x), ty(expPDF(x, lambda)));
+    ctx.lineTo(tx(xMax), ty(0)); ctx.closePath(); ctx.fill();
+  } 
+  else if (calcExpOpcionActiva === 3) {
+    if (b > a) {
+      ctx.beginPath(); ctx.moveTo(tx(a), ty(0));
+      const step = (b - a) / 100;
+      for (let x = a; x <= b; x += step) ctx.lineTo(tx(x), ty(expPDF(x, lambda)));
+      ctx.lineTo(tx(b), ty(0)); ctx.closePath(); ctx.fill();
+    } else if (Math.abs(a - b) < 0.00001) {
+      ctx.strokeStyle = 'rgba(0, 212, 170, 0.5)';
+      ctx.beginPath(); ctx.moveTo(tx(a), ty(0)); ctx.lineTo(tx(a), ty(expPDF(a, lambda))); ctx.stroke();
+    }
+  } 
+  else if (calcExpOpcionActiva === 4) {
+    // Extremo Izquierdo
+    ctx.beginPath(); ctx.moveTo(tx(xMin), ty(0));
+    const stepLeft = (a - xMin) / 100;
+    if (stepLeft > 0) {
+      for (let x = xMin; x <= a; x += stepLeft) ctx.lineTo(tx(x), ty(expPDF(x, lambda)));
+    } else { ctx.lineTo(tx(a), ty(expPDF(a, lambda))); }
+    ctx.lineTo(tx(a), ty(0)); ctx.closePath(); ctx.fill();
+
+    // Extremo Derecho
+    if (b > a || Math.abs(a - b) < 0.00001) {
+      ctx.beginPath(); ctx.moveTo(tx(b), ty(0));
+      const stepRight = (xMax - b) / 100;
+      for (let x = b; x <= xMax; x += stepRight) ctx.lineTo(tx(x), ty(expPDF(x, lambda)));
+      ctx.lineTo(tx(xMax), ty(0)); ctx.closePath(); ctx.fill();
+    }
+  }
+
+  // Trazar curva exponencial PDF
+  ctx.beginPath();
+  for (let i = 0; i <= 200; i++) {
+    const x = xMin + (i / 200) * (xMax - xMin);
+    i === 0 ? ctx.moveTo(tx(x), ty(expPDF(x, lambda))) : ctx.lineTo(tx(x), ty(expPDF(x, lambda)));
+  }
+  ctx.strokeStyle = '#00d4aa'; ctx.lineWidth = 2; ctx.stroke();
+
+  // Trazado de límites a y b
+  ctx.lineWidth = 1;
+  if (a >= xMin && a <= xMax) {
+    ctx.strokeStyle = '#ef4444'; ctx.beginPath(); ctx.moveTo(tx(a), ty(0)); ctx.lineTo(tx(a), ty(expPDF(a, lambda))); ctx.stroke();
+    ctx.fillStyle = '#ef4444'; ctx.font = '9px monospace'; ctx.fillText(`a=${a}`, tx(a), ty(expPDF(a, lambda)) - 4);
+  }
+  if ((calcExpOpcionActiva === 3 || calcExpOpcionActiva === 4) && b >= xMin && b <= xMax && b >= a) {
+    ctx.strokeStyle = '#ea580c'; ctx.beginPath(); ctx.moveTo(tx(b), ty(0)); ctx.lineTo(tx(b), ty(expPDF(b, lambda))); ctx.stroke();
+    ctx.fillStyle = '#ea580c'; ctx.font = '9px monospace'; ctx.fillText(`b=${b}`, tx(b), ty(expPDF(b, lambda)) - 4);
+  }
+
+  ctx.strokeStyle = isDark ? '#1e2d40' : '#cbd5e1';
+  ctx.beginPath(); ctx.moveTo(0, ty(0)); ctx.lineTo(W, ty(0)); ctx.stroke();
+}
+
+function drawCalcExpCDF(lambda, a, b) {
+  const canvas = document.getElementById('calc-exp-cdf-canvas');
+  if (!canvas) return;
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr; canvas.height = 150 * dpr;
+  const ctx = canvas.getContext('2d'); ctx.scale(dpr, dpr);
+
+  const W = rect.width, H = 150;
+  const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+
+  const xMin = 0, xMax = Math.max(a, b, 4 / lambda) * 1.2;
+  const tx = x => ((x - xMin) / (xMax - xMin)) * (W - 40) + 20;
+  const ty = y => H - y * (H - 30) - 20; // CDF va de 0 a 1
+
+  // Curva de Distribución Acumulada
+  ctx.beginPath();
+  for (let i = 0; i <= 200; i++) {
+    const x = xMin + (i / 200) * (xMax - xMin);
+    const y = expCDF(x, lambda);
+    i === 0 ? ctx.moveTo(tx(x), ty(y)) : ctx.lineTo(tx(x), ty(y));
+  }
+  ctx.strokeStyle = '#0ea5e9'; ctx.lineWidth = 2; ctx.stroke();
+
+  // Puntos de proyección
+  ctx.lineWidth = 1; ctx.setLineDash([3, 3]);
+  ctx.strokeStyle = isDark ? '#334155' : '#94a3b8';
+
+  if ((calcExpOpcionActiva === 1 || calcExpOpcionActiva === 2 || calcExpOpcionActiva === 3 || calcExpOpcionActiva === 4) && a >= xMin && a <= xMax) {
+    const yA = expCDF(a, lambda);
+    ctx.beginPath(); ctx.moveTo(tx(a), ty(0)); ctx.lineTo(tx(a), ty(yA)); ctx.lineTo(tx(xMin), ty(yA)); ctx.stroke();
+    ctx.fillStyle = '#f59e0b'; ctx.beginPath(); ctx.arc(tx(a), ty(yA), 3, 0, 2 * Math.PI); ctx.fill();
+  }
+  if ((calcExpOpcionActiva === 3 || calcExpOpcionActiva === 4) && b >= xMin && b <= xMax && b >= a) {
+    const yB = expCDF(b, lambda);
+    ctx.beginPath(); ctx.moveTo(tx(b), ty(0)); ctx.lineTo(tx(b), ty(yB)); ctx.lineTo(tx(xMin), ty(yB)); ctx.stroke();
+    ctx.fillStyle = '#f59e0b'; ctx.beginPath(); ctx.arc(tx(b), ty(yB), 3, 0, 2 * Math.PI); ctx.fill();
+  }
+  ctx.setLineDash([]);
+
+  ctx.strokeStyle = isDark ? '#1e2d40' : '#cbd5e1';
+  ctx.beginPath(); ctx.moveTo(0, ty(0)); ctx.lineTo(W, ty(0)); ctx.stroke();
+}
+
+// =====================================================================
+// --- MOTOR ANALÍTICO DE LA CALCULADORA POISSON POR OPCIONES ---
+// =====================================================================
+
+// Función acumulada para Poisson (suma de PMFs)
+function poissonCDF(x, lambda) {
+  if (x < 0) return 0;
+  let sum = 0;
+  const k = Math.floor(x);
+  for (let i = 0; i <= k; i++) {
+    sum += poissonPMF(i, lambda);
+  }
+  return sum;
+}
+
+function cambiarOpcionCalculadoraPoi(opcion) {
+  calcPoiOpcionActiva = opcion;
+  for (let i = 1; i <= 4; i++) {
+    const btn = document.getElementById(`btn-poi-opt-${i}`);
+    if (btn) {
+      if (i === opcion) {
+        btn.style.background = 'rgba(0, 212, 170, 0.15)';
+        btn.style.borderColor = '#00d4aa';
+      } else {
+        btn.style.background = 'transparent';
+        btn.style.borderColor = '';
+      }
+    }
+  }
+  ejecutarCalculadoraPoiPorOpcion();
+}
+
+function ejecutarCalculadoraPoiPorOpcion() {
+  if (currentDist !== 'poisson') return;
+
+  const lambda = Math.max(0.01, parseFloat(document.getElementById('calc-poi-lambda').value) || 4);
+  let a = parseInt(document.getElementById('calc-poi-a').value) || 0;
+  let b = parseInt(document.getElementById('calc-poi-b').value) || 0;
+
+  if (a < 0) a = 0;
+  if (b < 0) b = 0;
+
+  const cdfA = poissonCDF(a, lambda);
+  const cdfB = poissonCDF(b, lambda);
+  const cdfA_minus_1 = poissonCDF(a - 1, lambda); // Clave para variables discretas
+
+  let resultadoFinal = 0;
+  let labelTexto = "";
+  let tituloGrafico = "";
+
+  switch (calcPoiOpcionActiva) {
+    case 1:
+      resultadoFinal = cdfA;
+      labelTexto = `P(X ≤ ${a}) [Acumulada Izquierda] =`;
+      tituloGrafico = `Suma de Masas de 0 a ${a}`;
+      break;
+    case 2:
+      resultadoFinal = 1 - cdfA; // Complemento
+      labelTexto = `P(X > ${a}) [Complemento Derecho] =`;
+      tituloGrafico = `Masas activas desde ${a + 1} hacia ∞`;
+      break;
+    case 3:
+      resultadoFinal = b >= a ? (cdfB - cdfA_minus_1) : 0;
+      labelTexto = b >= a ? `P(${a} ≤ X ≤ ${b}) [Intervalo Exacto] =` : "Error: 'a' debe ser ≤ 'b'";
+      tituloGrafico = b >= a ? `Masas en el intervalo [${a}, ${b}]` : "Error de Intervalo";
+      break;
+    case 4:
+      const pEntre = b >= a ? (cdfB - cdfA_minus_1) : 0;
+      resultadoFinal = 1 - pEntre;
+      labelTexto = b >= a ? `P(X < ${a} o X > ${b}) [Extremos Aislados] =` : "Error: 'a' debe ser ≤ 'b'";
+      tituloGrafico = b >= a ? `Masas Fuera de [${a}, ${b}]` : "Error de Intervalo";
+      break;
+  }
+
+  document.getElementById('res-poi-calc-label').textContent = labelTexto;
+  document.getElementById('res-poi-calc-value').textContent = (typeof resultadoFinal === 'number') ? resultadoFinal.toFixed(6) : "-";
+  document.getElementById('pdf-poi-graph-title').textContent = `Probabilidad de Masa (PMF) — ${tituloGrafico}`;
+
+  drawCalcPoiPMF(lambda, a, b);
+  drawCalcPoiCDF(lambda, a, b);
+}
+
+// PMF Gráfico de Puntos/Lollipops (Propio de Poisson)
+function drawCalcPoiPMF(lambda, a, b) {
+  const canvas = document.getElementById('calc-poi-pdf-canvas');
+  if (!canvas) return;
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr; canvas.height = 150 * dpr;
+  const ctx = canvas.getContext('2d'); ctx.scale(dpr, dpr);
+
+  const W = rect.width, H = 150;
+  const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+
+  // Mostrar datos hasta un rango visible razonable (media + 4 sigmas)
+  const xMax = Math.max(a, b, lambda + 4 * Math.sqrt(lambda));
+  const bins = Math.ceil(xMax) + 1;
+
+  let maxP = 0;
+  for (let k = 0; k < bins; k++) maxP = Math.max(maxP, poissonPMF(k, lambda));
+
+  const paddingLeft = 30, paddingRight = 20, paddingTop = 15, paddingBottom = 20;
+  const tx = x => paddingLeft + (x / (bins - 1 || 1)) * (W - paddingLeft - paddingRight);
+  const ty = y => H - paddingBottom - (y / (maxP * 1.1)) * (H - paddingTop - paddingBottom);
+
+  ctx.strokeStyle = isDark ? '#1e2d40' : '#cbd5e1'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(paddingLeft, ty(0)); ctx.lineTo(W - paddingRight, ty(0)); ctx.stroke();
+
+  for (let k = 0; k < bins; k++) {
+    const p = poissonPMF(k, lambda);
+    const cx = tx(k);
+    const cy = ty(p);
+
+    let pintar = false;
+    if (calcPoiOpcionActiva === 1 && k <= a) pintar = true;
+    else if (calcPoiOpcionActiva === 2 && k > a) pintar = true;
+    else if (calcPoiOpcionActiva === 3 && b >= a && k >= a && k <= b) pintar = true;
+    else if (calcPoiOpcionActiva === 4 && b >= a && (k < a || k > b)) pintar = true;
+
+    ctx.strokeStyle = pintar ? '#00d4aa' : (isDark ? '#334155' : '#94a3b8');
+    ctx.fillStyle = pintar ? '#00d4aa' : (isDark ? '#334155' : '#94a3b8');
+
+    // Trazar línea y punto ("lollipop")
+    ctx.beginPath();
+    ctx.moveTo(cx, ty(0));
+    ctx.lineTo(cx, cy);
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, 3, 0, 2 * Math.PI);
+    ctx.fill();
+  }
+
+  // Trazado de Etiquetas a y b
+  ctx.fillStyle = '#ef4444'; ctx.font = '9px monospace'; ctx.textAlign = 'center';
+  if (a >= 0 && a < bins && (calcPoiOpcionActiva !== 3 || b >= a)) ctx.fillText(`a=${a}`, tx(a), ty(0) + 12);
+  if ((calcPoiOpcionActiva === 3 || calcPoiOpcionActiva === 4) && b >= a && b < bins) {
+    ctx.fillStyle = '#ea580c'; ctx.fillText(`b=${b}`, tx(b), ty(0) + 12);
+  }
+}
+
+// CDF Gráfico de Función Escalonada
+function drawCalcPoiCDF(lambda, a, b) {
+  const canvas = document.getElementById('calc-poi-cdf-canvas');
+  if (!canvas) return;
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr; canvas.height = 150 * dpr;
+  const ctx = canvas.getContext('2d'); ctx.scale(dpr, dpr);
+
+  const W = rect.width, H = 150;
+  const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+
+  const xMax = Math.max(a, b, lambda + 4 * Math.sqrt(lambda));
+  const bins = Math.ceil(xMax) + 1;
+
+  const paddingLeft = 30, paddingRight = 20, paddingTop = 15, paddingBottom = 20;
+  const tx = x => paddingLeft + (x / (bins - 1 || 1)) * (W - paddingLeft - paddingRight);
+  const ty = y => H - paddingBottom - y * (H - paddingTop - paddingBottom);
+
+  ctx.strokeStyle = '#0ea5e9'; ctx.lineWidth = 2;
+  let currentY = 0;
+  
+  for (let k = 0; k < bins; k++) {
+    const p = poissonPMF(k, lambda);
+    const nextY = currentY + p;
+
+    // Escalonamiento (Línea horizontal)
+    ctx.beginPath();
+    ctx.moveTo(tx(k), ty(nextY));
+    if (k < bins - 1) {
+      ctx.lineTo(tx(k + 1), ty(nextY));
+    } else {
+      ctx.lineTo(tx(k) + 20, ty(nextY)); 
+    }
+    ctx.stroke();
+
+    // Salto visual del escalón (Dashed vertical)
+    if (k > 0) {
+      ctx.beginPath(); ctx.setLineDash([2, 2]); ctx.strokeStyle = isDark ? '#1e2d40' : '#cbd5e1';
+      ctx.moveTo(tx(k), ty(currentY)); ctx.lineTo(tx(k), ty(nextY)); ctx.stroke();
+      ctx.setLineDash([]); ctx.strokeStyle = '#0ea5e9';
+    }
+    currentY = nextY;
+  }
+
+  // Proyecciones condicionales
+  ctx.lineWidth = 1; ctx.setLineDash([3, 3]); ctx.strokeStyle = isDark ? '#334155' : '#94a3b8';
+
+  if (a >= 0 && a < bins) {
+    const yA = poissonCDF(a, lambda);
+    ctx.beginPath(); ctx.moveTo(tx(a), ty(0)); ctx.lineTo(tx(a), ty(yA)); ctx.lineTo(paddingLeft, ty(yA)); ctx.stroke();
+    ctx.fillStyle = '#f59e0b'; ctx.beginPath(); ctx.arc(tx(a), ty(yA), 3, 0, 2 * Math.PI); ctx.fill();
+  }
+  if (b >= 0 && b < bins && b >= a && (calcPoiOpcionActiva === 3 || calcPoiOpcionActiva === 4)) {
+    const yB = poissonCDF(b, lambda);
+    ctx.beginPath(); ctx.moveTo(tx(b), ty(0)); ctx.lineTo(tx(b), ty(yB)); ctx.lineTo(paddingLeft, ty(yB)); ctx.stroke();
+    ctx.fillStyle = '#f59e0b'; ctx.beginPath(); ctx.arc(tx(b), ty(yB), 3, 0, 2 * Math.PI); ctx.fill();
+  }
+
+  ctx.setLineDash([]);
+  ctx.strokeStyle = isDark ? '#1e2d40' : '#cbd5e1';
+  ctx.beginPath(); ctx.moveTo(paddingLeft, ty(0)); ctx.lineTo(W, ty(0)); ctx.stroke();
+}
+
+// =====================================================================
+// --- MOTOR ANALÍTICO DE LA CALCULADORA UNIFORME POR OPCIONES ---
+// =====================================================================
+
+// Función de distribución acumulada analítica para Uniforme
+function uniformCDF(x, alpha, beta) {
+  if (x < alpha) return 0;
+  if (x > beta) return 1;
+  return (x - alpha) / (beta - alpha);
+}
+
+function cambiarOpcionCalculadoraUni(opcion) {
+  calcUniOpcionActiva = opcion;
+  for (let i = 1; i <= 4; i++) {
+    const btn = document.getElementById(`btn-uni-opt-${i}`);
+    if (btn) {
+      if (i === opcion) {
+        btn.style.background = 'rgba(0, 212, 170, 0.15)';
+        btn.style.borderColor = '#00d4aa';
+      } else {
+        btn.style.background = 'transparent';
+        btn.style.borderColor = '';
+      }
+    }
+  }
+  ejecutarCalculadoraUniPorOpcion();
+}
+
+function ejecutarCalculadoraUniPorOpcion() {
+  if (currentDist !== 'uniforme') return;
+
+  let alpha = parseFloat(document.getElementById('calc-uni-min').value) || 0;
+  let beta = parseFloat(document.getElementById('calc-uni-max').value) || 10;
+  
+  if (alpha >= beta) beta = alpha + 1; // Seguridad matemática
+
+  let a = parseFloat(document.getElementById('calc-uni-a').value) || 0;
+  let b = parseFloat(document.getElementById('calc-uni-b').value) || 0;
+
+  const cdfA = uniformCDF(a, alpha, beta);
+  const cdfB = uniformCDF(b, alpha, beta);
+
+  let resultadoFinal = 0;
+  let labelTexto = "";
+  let tituloGrafico = "";
+
+  switch (calcUniOpcionActiva) {
+    case 1:
+      resultadoFinal = cdfA;
+      labelTexto = `P(X ≤ ${a}) [Área Izquierda] =`;
+      tituloGrafico = `Área Sombreada hasta a = ${a}`;
+      break;
+    case 2:
+      resultadoFinal = 1 - cdfA;
+      labelTexto = `P(X > ${a}) [Área Derecha] =`;
+      tituloGrafico = `Área Sombreada desde a = ${a}`;
+      break;
+    case 3:
+      resultadoFinal = b >= a ? (cdfB - cdfA) : 0;
+      labelTexto = b >= a ? `P(${a} ≤ X ≤ ${b}) [Intervalo Central] =` : "Error: 'a' debe ser ≤ 'b'";
+      tituloGrafico = b >= a ? `Área Sombreada entre ${a} y ${b}` : "Error de Intervalo";
+      break;
+    case 4:
+      const pEntre = b >= a ? (cdfB - cdfA) : 0;
+      resultadoFinal = 1 - pEntre;
+      labelTexto = b >= a ? `P(X < ${a} o X > ${b}) [Extremos Aislados] =` : "Error: 'a' debe ser ≤ 'b'";
+      tituloGrafico = b >= a ? `Áreas Fuera de [${a}, ${b}]` : "Error de Intervalo";
+      break;
+  }
+
+  document.getElementById('res-uni-calc-label').textContent = labelTexto;
+  document.getElementById('res-uni-calc-value').textContent = (typeof resultadoFinal === 'number') ? resultadoFinal.toFixed(6) : "-";
+  document.getElementById('pdf-uni-graph-title').textContent = `Densidad Uniforme (PDF) — ${tituloGrafico}`;
+
+  drawCalcUniPDF(alpha, beta, a, b);
+  drawCalcUniCDF(alpha, beta, a, b);
+}
+
+// PDF Uniforme Rectangular
+function drawCalcUniPDF(alpha, beta, a, b) {
+  const canvas = document.getElementById('calc-uni-pdf-canvas');
+  if (!canvas) return;
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr; canvas.height = 150 * dpr;
+  const ctx = canvas.getContext('2d'); ctx.scale(dpr, dpr);
+
+  const W = rect.width, H = 150;
+  const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+
+  // Mostrar los límites más un poco de holgura visual
+  const padding = (beta - alpha) * 0.2;
+  const xMin = alpha - padding, xMax = beta + padding;
+  
+  const tx = x => ((x - xMin) / (xMax - xMin)) * (W - 40) + 20;
+  const pdfVal = 1 / (beta - alpha); // Altura de la caja
+  const ty = y => H - (y / (pdfVal * 1.4)) * (H - 30) - 20;
+
+  ctx.fillStyle = 'rgba(0, 212, 170, 0.2)'; 
+  
+  // Función auxiliar rápida para dibujar las cajas según la opción
+  const drawRect = (startX, endX) => {
+    const drawStart = Math.max(alpha, startX);
+    const drawEnd = Math.min(beta, endX);
+    if (drawStart < drawEnd) {
+       ctx.fillRect(tx(drawStart), ty(pdfVal), tx(drawEnd) - tx(drawStart), ty(0) - ty(pdfVal));
+    }
+  };
+
+  if (calcUniOpcionActiva === 1) drawRect(alpha, a);
+  else if (calcUniOpcionActiva === 2) drawRect(a, beta);
+  else if (calcUniOpcionActiva === 3 && b >= a) drawRect(a, b);
+  else if (calcUniOpcionActiva === 4 && b >= a) {
+    drawRect(alpha, a);
+    drawRect(b, beta);
+  }
+
+  // Trazar los bordes formales del PDF Rectangular
+  ctx.strokeStyle = '#00d4aa'; ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(tx(xMin), ty(0));
+  ctx.lineTo(tx(alpha), ty(0));
+  ctx.lineTo(tx(alpha), ty(pdfVal));
+  ctx.lineTo(tx(beta), ty(pdfVal));
+  ctx.lineTo(tx(beta), ty(0));
+  ctx.lineTo(tx(xMax), ty(0));
+  ctx.stroke();
+
+  // Líneas indicadoras
+  ctx.lineWidth = 1;
+  if (a >= alpha && a <= beta && (calcUniOpcionActiva === 1 || calcUniOpcionActiva === 2 || calcUniOpcionActiva === 3 || calcUniOpcionActiva === 4)) {
+    ctx.strokeStyle = '#ef4444'; ctx.beginPath(); ctx.moveTo(tx(a), ty(0)); ctx.lineTo(tx(a), ty(pdfVal)); ctx.stroke();
+    ctx.fillStyle = '#ef4444'; ctx.font = '9px monospace'; ctx.fillText(`a=${a}`, tx(a), ty(pdfVal) - 4);
+  }
+  if (b >= alpha && b <= beta && (calcUniOpcionActiva === 3 || calcUniOpcionActiva === 4) && b >= a) {
+    ctx.strokeStyle = '#ea580c'; ctx.beginPath(); ctx.moveTo(tx(b), ty(0)); ctx.lineTo(tx(b), ty(pdfVal)); ctx.stroke();
+    ctx.fillStyle = '#ea580c'; ctx.font = '9px monospace'; ctx.fillText(`b=${b}`, tx(b), ty(pdfVal) - 4);
+  }
+
+  // Eje X
+  ctx.strokeStyle = isDark ? '#1e2d40' : '#cbd5e1';
+  ctx.beginPath(); ctx.moveTo(0, ty(0)); ctx.lineTo(W, ty(0)); ctx.stroke();
+}
+
+// CDF Uniforme (Línea Diagonal Lineal)
+function drawCalcUniCDF(alpha, beta, a, b) {
+  const canvas = document.getElementById('calc-uni-cdf-canvas');
+  if (!canvas) return;
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr; canvas.height = 150 * dpr;
+  const ctx = canvas.getContext('2d'); ctx.scale(dpr, dpr);
+
+  const W = rect.width, H = 150;
+  const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+
+  const padding = (beta - alpha) * 0.2;
+  const xMin = alpha - padding, xMax = beta + padding;
+  
+  const tx = x => ((x - xMin) / (xMax - xMin)) * (W - 40) + 20;
+  const ty = y => H - y * (H - 30) - 20; // y va de 0 a 1 lineal
+
+  // Trazar línea de Probabilidad Acumulada
+  ctx.strokeStyle = '#0ea5e9'; ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(tx(xMin), ty(0));
+  ctx.lineTo(tx(alpha), ty(0));
+  ctx.lineTo(tx(beta), ty(1));
+  ctx.lineTo(tx(xMax), ty(1));
+  ctx.stroke();
+
+  // Puntos y trazados de proyección
+  ctx.lineWidth = 1; ctx.setLineDash([3, 3]);
+  ctx.strokeStyle = isDark ? '#334155' : '#94a3b8';
+
+  if (a >= alpha && a <= beta && (calcUniOpcionActiva === 1 || calcUniOpcionActiva === 2 || calcUniOpcionActiva === 3 || calcUniOpcionActiva === 4)) {
+    const yA = uniformCDF(a, alpha, beta);
+    ctx.beginPath(); ctx.moveTo(tx(a), ty(0)); ctx.lineTo(tx(a), ty(yA)); ctx.lineTo(tx(xMin), ty(yA)); ctx.stroke();
+    ctx.fillStyle = '#f59e0b'; ctx.beginPath(); ctx.arc(tx(a), ty(yA), 3, 0, 2 * Math.PI); ctx.fill();
+  }
+  if (b >= alpha && b <= beta && (calcUniOpcionActiva === 3 || calcUniOpcionActiva === 4) && b >= a) {
+    const yB = uniformCDF(b, alpha, beta);
+    ctx.beginPath(); ctx.moveTo(tx(b), ty(0)); ctx.lineTo(tx(b), ty(yB)); ctx.lineTo(tx(xMin), ty(yB)); ctx.stroke();
+    ctx.fillStyle = '#f59e0b'; ctx.beginPath(); ctx.arc(tx(b), ty(yB), 3, 0, 2 * Math.PI); ctx.fill();
+  }
+
+  ctx.setLineDash([]);
+  
+  ctx.strokeStyle = isDark ? '#1e2d40' : '#cbd5e1';
+  ctx.beginPath(); ctx.moveTo(0, ty(0)); ctx.lineTo(W, ty(0)); ctx.stroke();
+}
+
+// INYECCIÓN DE INICIO GENERAL AUTOMÁTICO (Solo asegúrate de reemplazar el tuyo al fondo con este)
+setTimeout(() => { 
+  cambiarOpcionCalculadora(1); 
+  cambiarOpcionCalculadoraExp(1); 
+  cambiarOpcionCalculadoraPoi(1); 
+  cambiarOpcionCalculadoraUni(1);
+}, 100);
 
 
 // Inicialización de la UI

@@ -16,7 +16,7 @@
         <div class="subtitle" id="main-subtitle">Transformada Inversa — Método Tabla Z</div>
       </div>
     </div>
-    
+
     <div class="controls-header">
       <select id="dist-selector" onchange="changeDistribution()">
         <option value="normal">Distribución Normal</option>
@@ -24,6 +24,7 @@
         <option value="poisson">Distribución Poisson</option>
         <option value="uniforme">Distribución Uniforme</option>
       </select>
+      <button class="btn-analysis" id="btn-toggle-analysis" onclick="toggleAnalysisMode()" title="Análisis de Datos Propios">📊 Analizar Datos</button>
       <button class="btn-theme" onclick="toggleTheme()" title="Cambiar tema">🌓</button>
     </div>
   </div>
@@ -727,6 +728,112 @@
 
   </div>
 
-  <script src="script.js"></script>
+  <div id="view-analysis" style="display:none;">
+    <div class="card">
+      <div class="card-title">Ingreso de Datos y Configuración</div>
+      <div style="margin-bottom: 12px;">
+        <label>Escribe o pega tus números (separados por comas, espacios o saltos de línea):</label>
+        <textarea id="analysis-input" rows="4" placeholder="Ejemplo: 12, 15, 15, 17, 20, 22, 23, 25, 25, 25, 28, 30, 35"></textarea>
+    </div>
+
+    <div class="grid2" style="margin-bottom: 12px;">
+      <div>
+        <label>Origen de los Datos</label>
+        <select id="analysis-type" onchange="procesarAnalisis()">
+          <option value="muestra">Muestra (n-1)</option>
+          <option value="poblacion">Población (N)</option>
+        </select>
+      </div>
+      <div>
+        <label>Tratamiento de Datos</label>
+        <select id="analysis-grouping" onchange="toggleGroupingInputs()">
+          <option value="no-agrupados">Datos No Agrupados</option>
+          <option value="agrupados">Datos Agrupados (Intervalos)</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="grouping-options" class="grid2" style="display:none; margin-bottom: 12px; background: var(--formula-bg); padding: 10px; border-radius: 8px;">
+      <div>
+        <label>Modo de Agrupación</label>
+        <select id="analysis-auto-intervals" onchange="toggleIntervalInput()">
+          <option value="auto">Automático (Sturges)</option>
+          <option value="manual">Manual (Fijo)</option>
+        </select>
+      </div>
+      <div id="manual-intervals-container" style="visibility: hidden;">
+        <label>Número de Intervalos (K)</label>
+        <input type="number" id="analysis-k" value="5" min="2" max="30" oninput="procesarAnalisis()">
+      </div>
+    </div>
+
+    <button class="btn" onclick="procesarAnalisis()">📊 Calcular y Construir Tabla</button>
+  </div>
+
+  <div class="card" id="analysis-stats-card" style="display:none;">
+    <div class="card-title">Estadísticos Descriptivos Cálculados</div>
+    <div id="analysis-stats-rows"></div>
+  </div>
+
+  <div class="card" id="analysis-chart-card" style="display:none;">
+    <div class="card-title" id="analysis-chart-title">Histograma de Frecuencias</div>
+    <canvas id="analysis-canvas"></canvas>
+    <div class="legend" id="analysis-legend"></div>
+  </div>
+
+  <div class="card" id="analysis-freq-card" style="display:none;">
+    <div class="card-title">Tabla de Distribución de Frecuencias</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="text-align:left; padding-left:15px;">Clase / Valor</th>
+            <th>Marca (Xᵢ)</th>
+            <th>Freq. Abs (fᵢ)</th>
+            <th>Freq. Acum (Fᵢ)</th>
+            <th>Freq. Rel (hᵢ)</th>
+            <th>Freq. Rel. Acum (Hᵢ)</th>
+          </tr>
+        </thead>
+        <tbody id="analysis-freq-table-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card" id="analysis-prob-card" style="margin-top: 15px; border-left: 4px solid #f59e0b;">
+  <div class="card-title">Cálculo de Probabilidad Empírica</div>
+  <div class="grid2" style="margin-bottom:10px;">
+    <input type="number" id="analysis-prob-a" placeholder="Límite a" step="any">
+    <input type="number" id="analysis-prob-b" placeholder="Límite b" step="any">
+  </div>
+  <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px;">
+    <button class="btn-outline" onclick="calcularProbabilidad('menor')">P(X ≤ a)</button>
+    <button class="btn-outline" onclick="calcularProbabilidad('mayor')">P(X > a)</button>
+    <button class="btn-outline" onclick="calcularProbabilidad('entre')">P(a ≤ X ≤ b)</button>
+    <button class="btn-outline" onclick="calcularProbabilidad('fuera')">P(X < a o X > b)</button>
+  </div>
+    <div id="res-prob-val" style="margin-top:10px; font-weight:bold; color:#f59e0b; text-align:center; font-family:monospace;">-</div>
+  </div>
+  
+  <div class="card-title" id="analysis-pdf-graph-title">Distribución Empírica</div>
+  <div class="grid2">
+    <div>
+      <label>Densidad / Masa (PDF/PMF)</label>
+      <canvas id="analysis-pdf-canvas" style="height:150px;"></canvas>
+    </div>
+    <div>
+      <label>Distribución Acumulada (CDF)</label>
+      <canvas id="analysis-cdf-canvas" style="height:150px;"></canvas>
+    </div>
+  </div>
+
+</div>
+
+  <script src="math.js"></script>
+  <script src="ui.js"></script>
+  <script src="simulation.js"></script>
+  <script src="calculator.js"></script>
+  <script src="analysis.js"></script>
+
 </body>
 </html>

@@ -418,3 +418,42 @@ canvas {
 /* Controladores condicionales por JS */
 .dist-section { display: none; }
 .dist-section.active-dist { display: block; }
+/* NUEVOS ESTILOS PARA LA SECCIÓN DE ANÁLISIS DE DATOS PROPIOS */
+.btn-analysis {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  padding: 0 12px;
+  height: 36px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.btn-analysis:hover {
+  border-color: #a78bfa;
+  color: #a78bfa;
+}
+
+/* Corrección del selector de ID (#) para el textarea */
+#analysis-input {
+  width: 100%;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-main);
+  font-family: monospace;
+  font-size: 13px;
+  padding: 10px;
+  outline: none;
+  resize: vertical;
+}
+
+#analysis-input:focus {
+  border-color: #00d4aa;
+}

@@ -1437,3 +1437,326 @@ setTimeout(() => {
 
 // Inicialización de la UI
 updateCalculatedValues();
+
+// --- NUEVAS VARIABLES GLOBALES PARA MÓDULO DE ANÁLISIS ---
+let isAnalysisMode = false;
+let datosAnalizados = [];
+
+function toggleAnalysisMode() {
+  isAnalysisMode = !isAnalysisMode;
+  const btn = document.getElementById('btn-toggle-analysis');
+  const tabs = document.querySelector('.tabs');
+  
+  // Contenedores estándar del simulador
+  const viewFormulas = document.getElementById('view-formulas');
+  const viewSim = document.getElementById('view-sim');
+  const viewCalc = document.getElementById('view-calc');
+  const viewAnalysis = document.getElementById('view-analysis');
+  const distSelector = document.getElementById('dist-selector');
+
+  if (isAnalysisMode) {
+    btn.textContent = "🎲 Volver a Simulador";
+    btn.style.background = "rgba(167, 139, 250, 0.2)";
+    btn.style.borderColor = "#a78bfa";
+    btn.style.color = "#a78bfa";
+    
+    // Ocultar UI principal del simulador
+    tabs.style.display = 'none';
+    viewFormulas.style.display = 'none';
+    viewSim.style.display = 'none';
+    viewCalc.style.display = 'none';
+    distSelector.disabled = true;
+    
+    // Mostrar UI de análisis
+    viewAnalysis.style.display = 'block';
+  } else {
+    btn.textContent = "📊 Analizar Datos";
+    btn.style.background = "var(--bg-card)";
+    btn.style.borderColor = "var(--border-color)";
+    btn.style.color = "var(--text-main)";
+    
+    tabs.style.display = 'flex';
+    distSelector.disabled = false;
+    viewAnalysis.style.display = 'none';
+    
+    // Retornar a la pestaña activa previa
+    switchTab(activeTab);
+  }
+}
+
+function toggleGroupingInputs() {
+  const grouping = document.getElementById('analysis-grouping').value;
+  document.getElementById('grouping-options').style.display = grouping === 'agrupados' ? 'grid' : 'none';
+  procesarAnalisis();
+}
+
+function toggleIntervalInput() {
+  const mode = document.getElementById('analysis-auto-intervals').value;
+  document.getElementById('manual-intervals-container').style.visibility = mode === 'manual' ? 'visible' : 'hidden';
+  procesarAnalisis();
+}
+
+function procesarAnalisis() {
+  const rawData = document.getElementById('analysis-input').value;
+  // Extrae números válidos tolerando espacios, comas, puntos, punto y coma o saltos de línea
+  datosAnalizados = rawData.split(/[\s,;\n]+/).map(Number).filter(v => !isNaN(v) && v !== 0 || rawData.includes('0') && v === 0);
+
+  if (datosAnalizados.length < 3) {
+    alert("Por favor introduce al menos 3 números válidos para generar estadísticas descriptivas completas.");
+    return;
+  }
+
+  // Ordenar datos de menor a mayor (esencial para rango y mediana)
+  datosAnalizados.sort((a, b) => a - b);
+
+  const isGrouped = document.getElementById('analysis-grouping').value === 'agrupados';
+  const isPopulation = document.getElementById('analysis-type').value === 'poblacion';
+  const autoIntervals = document.getElementById('analysis-auto-intervals').value === 'auto';
+  
+  let clases = [];
+  const n = datosAnalizados.length;
+  const min = datosAnalizados[0];
+  const max = datosAnalizados[n - 1];
+  const rango = max - min;
+
+  // =====================================================================
+  // --- 1. CONSTRUCCIÓN DE CLASES / TABLA DE FRECUENCIAS ---
+  // =====================================================================
+  if (!isGrouped) {
+    // Frecuencias para datos individuales sin agrupar
+    const mapeoFrec = {};
+    datosAnalizados.forEach(x => mapeoFrec[x] = (mapeoFrec[x] || 0) + 1);
+    for (let valor in mapeoFrec) {
+      clases.push({
+        label: `Valor: ${valor}`,
+        midpoint: parseFloat(valor),
+        f: mapeoFrec[valor]
+      });
+    }
+  } else {
+    // Frecuencias agrupadas por intervalos (Regla de Sturges o Manual)
+    let k = autoIntervals ? Math.ceil(1 + 3.322 * Math.log10(n)) : parseInt(document.getElementById('analysis-k').value) || 5;
+    if (k < 2) k = 2;
+    
+    let amplitud = rango / k;
+    if (amplitud === 0) amplitud = 1; // Manejo de excepción si todos los datos ingresados son idénticos
+
+    for (let i = 0; i < k; i++) {
+      const inferior = min + i * amplitud;
+      const superior = min + (i + 1) * amplitud;
+      
+      // El último intervalo es cerrado [inf, sup] para no excluir el valor máximo absoluto
+      const f = datosAnalizados.filter((v) => {
+        if (i === k - 1) return v >= inferior && v <= superior;
+        return v >= inferior && v < superior;
+      }).length;
+
+      clases.push({
+        label: `[${inferior.toFixed(2)} , ${superior.toFixed(2)}${i === k - 1 ? ']' : ')'}`,
+        midpoint: (inferior + superior) / 2,
+        f: f
+      });
+    }
+  }
+
+  // Inyección de filas en el cuerpo de la tabla del DOM
+  const tbody = document.getElementById('analysis-freq-table-body');
+  tbody.innerHTML = '';
+  let F_acum = 0, H_acum = 0;
+  
+  clases.forEach(c => {
+    F_acum += c.f;
+    const h = c.f / n;
+    H_acum += h;
+    tbody.innerHTML += `
+      <tr>
+        <td style="color:var(--text-desc); font-weight:600; text-align:left; padding-left:15px;">${c.label}</td>
+        <td>${c.midpoint.toFixed(2)}</td>
+        <td style="color:#0ea5e9; font-weight:700;">${c.f}</td>
+        <td>${F_acum}</td>
+        <td style="color:#00d4aa;">${h.toFixed(4)}</td>
+        <td>${Math.min(1.0, H_acum).toFixed(4)}</td>
+      </tr>`;
+  });
+
+  // =====================================================================
+  // --- 2. MOTOR DE CÁLCULO ESTADÍSTICO AJUSTADO ---
+  // =====================================================================
+  let media, mediana, moda, varianza, desviacion, cv, asimetria, curtosis;
+
+  if (!isGrouped) {
+    // --- CÁLCULOS EXACTOS: DATOS NO AGRUPADOS ---
+    media = datosAnalizados.reduce((sum, v) => sum + v, 0) / n;
+    
+    // Mediana exacta posicional
+    const mid = Math.floor(n / 2);
+    mediana = n % 2 !== 0 ? datosAnalizados[mid] : (datosAnalizados[mid - 1] + datosAnalizados[mid]) / 2;
+    
+    // Moda exacta
+    const frecMap = {}; let maxFrec = 0; let modas = [];
+    datosAnalizados.forEach(v => { frecMap[v] = (frecMap[v] || 0) + 1; if (frecMap[v] > maxFrec) maxFrec = frecMap[v]; });
+    for (let k in frecMap) { if (frecMap[k] === maxFrec) modas.push(Number(k)); }
+    moda = modas.length === n ? "No existe moda" : modas.join(', ');
+
+    // Sumatorias de potencias acumuladas respecto a la media
+    const sum2 = datosAnalizados.reduce((acc, v) => acc + Math.pow(v - media, 2), 0);
+    const sum3 = datosAnalizados.reduce((acc, v) => acc + Math.pow(v - media, 3), 0);
+    const sum4 = datosAnalizados.reduce((acc, v) => acc + Math.pow(v - media, 4), 0);
+
+    if (isPopulation) {
+      // Fórmulas para parámetros Poblacionales (N)
+      varianza = sum2 / n;
+      desviacion = Math.sqrt(varianza);
+      asimetria = (sum3 / n) / Math.pow(desviacion, 3);
+      curtosis = ((sum4 / n) / Math.pow(desviacion, 4)) - 3; // Curtosis en exceso estándar (Normal = 0)
+    } else {
+      // Fórmulas para estimadores Muestrales (n-1) consistentes con Excel/SPSS
+      varianza = sum2 / (n - 1);
+      desviacion = Math.sqrt(varianza);
+      
+      // Coeficiente de Asimetría de Fisher muestral
+      if (n > 2) {
+        asimetria = (n * sum3) / ((n - 1) * (n - 2) * Math.pow(desviacion, 3));
+      } else {
+        asimetria = 0;
+      }
+
+      // Coeficiente de Curtosis en Exceso muestral sin sesgo
+      if (n > 3) {
+        const factor1 = (n * (n + 1)) / ((n - 1) * (n - 2) * (n - 3));
+        const factor2 = (3 * Math.pow(n - 1, 2)) / ((n - 2) * (n - 3));
+        curtosis = (factor1 * (sum4 / Math.pow(desviacion, 4))) - factor2;
+      } else {
+        curtosis = 0;
+      }
+    }
+  } else {
+    // --- CÁLCULOS APROXIMADOS: DATOS AGRUPADOS (Vía Marcas de Clase) ---
+    media = clases.reduce((acc, c) => acc + (c.midpoint * c.f), 0) / n;
+    
+    // Mediana aproximada posicional por frecuencias acumuladas
+    let fa = 0; let idxMediana = 0;
+    for (let i = 0; i < clases.length; i++) {
+      fa += clases[i].f;
+      if (fa >= n / 2) { idxMediana = i; break; }
+    }
+    mediana = clases[idxMediana].midpoint; 
+
+    // Moda aproximada (centro de la clase/intervalo con mayor densidad de frecuencia)
+    let maxF = -1; let classModa = clases[0];
+    clases.forEach(c => { if (c.f > maxF) { maxF = c.f; classModa = c; } });
+    moda = classModa.midpoint.toFixed(2);
+
+    // Sumatorias ponderadas por frecuencia absoluta del intervalo (c.f)
+    const sum2_g = clases.reduce((acc, c) => acc + c.f * Math.pow(c.midpoint - media, 2), 0);
+    const sum3_g = clases.reduce((acc, c) => acc + c.f * Math.pow(c.midpoint - media, 3), 0);
+    const sum4_g = clases.reduce((acc, c) => acc + c.f * Math.pow(c.midpoint - media, 4), 0);
+
+    varianza = sum2_g / (isPopulation ? n : n - 1);
+    desviacion = Math.sqrt(varianza);
+
+    asimetria = (sum3_g / n) / Math.pow(desviacion, 3);
+    curtosis = ((sum4_g / n) / Math.pow(desviacion, 4)) - 3; // Curtosis en exceso aproximada
+  }
+
+  // Coeficiente de Variación como valor porcentual final
+  cv = media !== 0 ? (desviacion / Math.abs(media)) : 0;
+
+  // Arreglo estructurado bidimensional para emparejar y renderizar los datos
+  const rows = [
+    ['Total Observaciones (n)', n, 'Rango General', rango.toFixed(2)],
+    ['Media Aritmética (X̄)', media.toFixed(4), 'Mediana', typeof mediana === 'number' ? mediana.toFixed(4) : mediana],
+    ['Moda', moda, 'Varianza (' + (isPopulation ? 'σ²' : 'S²') + ')', varianza.toFixed(4)],
+    ['Desviación Estándar (' + (isPopulation ? 'σ' : 'S') + ')', desviacion.toFixed(4), 'Coef. de Variación (Cv)', (cv * 100).toFixed(2) + '%'],
+    ['Asimetría de Fisher', isNaN(asimetria) ? '0.0000' : asimetria.toFixed(4), 'Curtosis (Exceso)', isNaN(curtosis) ? '0.0000' : curtosis.toFixed(4)]
+  ];
+
+  let htmlRows = '';
+  rows.forEach(r => {
+    htmlRows += `
+      <div class="stat-row">
+        <div style="width:45%; color:var(--text-desc); font-size:12px;"><b>${r[0]}:</b> <span style="font-family:monospace; color:#0ea5e9;">${r[1]}</span></div>
+        <div style="width:45%; color:var(--text-desc); font-size:12px;"><b>${r[2]}:</b> <span style="font-family:monospace; color:#00d4aa;">${r[3]}</span></div>
+      </div>`;
+  });
+  document.getElementById('analysis-stats-rows').innerHTML = htmlRows;
+
+  // Desenclavar contenedores del módulo de análisis
+  document.getElementById('analysis-stats-card').style.display = 'block';
+  document.getElementById('analysis-chart-card').style.display = 'block';
+  document.getElementById('analysis-freq-card').style.display = 'block';
+
+  // Redibujar el histograma en su Canvas respectivo
+  drawAnalysisChart(clases);
+}
+
+function drawAnalysisChart(clases) {
+  const canvas = document.getElementById('analysis-canvas');
+  if (!canvas) return;
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr; canvas.height = 160 * dpr;
+  const ctx = canvas.getContext('2d'); ctx.scale(dpr, dpr);
+
+  const W = rect.width, H = 160;
+  const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+
+  const maxC = Math.max(...clases.map(c => c.f), 1);
+  const paddingLeft = 40, paddingRight = 20, paddingTop = 20, paddingBottom = 20;
+
+  const tx = idx => paddingLeft + (idx / clases.length) * (W - paddingLeft - paddingRight);
+  const ty = y => H - (y / (maxC * 1.2)) * (H - paddingTop - paddingBottom) - paddingBottom;
+  const cw = (W - paddingLeft - paddingRight) / clases.length;
+
+  // Fondos y grillas
+  ctx.strokeStyle = isDark ? 'rgba(30, 45, 64, 0.4)' : 'rgba(203, 213, 225, 0.4)';
+  for (let i = 0; i <= 4; i++) {
+    const yVal = (maxC * 1.2) * (i / 4);
+    const yPos = ty(yVal);
+    ctx.fillStyle = isDark ? '#64748b' : '#334155'; ctx.font = '9px monospace'; ctx.textAlign = 'right';
+    ctx.fillText(Math.round(yVal), paddingLeft - 6, yPos + 3);
+    if (i > 0) { ctx.beginPath(); ctx.moveTo(paddingLeft, yPos); ctx.lineTo(W - paddingRight, yPos); ctx.stroke(); }
+  }
+
+  // Dibujar rectángulos de cajas de frecuencias
+  clases.forEach((c, i) => {
+    const cx = tx(i);
+    const by = ty(c.f);
+    const bh = ty(0) - by;
+
+    const grad = ctx.createLinearGradient(cx, by, cx, ty(0));
+    grad.addColorStop(0, 'rgba(14, 165, 233, 0.85)');
+    grad.addColorStop(1, 'rgba(0, 212, 170, 0.15)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(cx + 1, by, cw - 2, bh);
+
+    ctx.strokeStyle = '#0ea5e9'; ctx.lineWidth = 1;
+    ctx.strokeRect(cx + 1, by, cw - 2, bh);
+
+    // Texto de cantidad sobre la barra
+    ctx.fillStyle = isDark ? '#e2e8f0' : '#0f172a'; ctx.textAlign = 'center'; ctx.font = 'bold 9px monospace';
+    ctx.fillText(c.f, cx + cw / 2, by - 4);
+  });
+
+  // Ejes base
+  ctx.strokeStyle = isDark ? '#1e2d40' : '#cbd5e1'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(paddingLeft, ty(0)); ctx.lineTo(W - paddingRight, ty(0));
+  ctx.moveTo(paddingLeft, paddingTop); ctx.lineTo(paddingLeft, ty(0)); ctx.stroke();
+
+  // Etiquetas de marcas de clase en el eje X
+  ctx.fillStyle = isDark ? '#64748b' : '#334155'; ctx.font = '8px monospace'; ctx.textAlign = 'center';
+  clases.forEach((c, i) => {
+    ctx.fillText(c.midpoint.toFixed(1), tx(i) + cw / 2, ty(0) + 12);
+  });
+
+  document.getElementById('analysis-legend').innerHTML = `<span style="color:#0ea5e9">■</span> Intervalos / Marcas de Clase (fᵢ)`;
+}
+
+// ACOPLAR CON EL SISTEMA DE CAMBIO DE TEMAS PRE-EXISTENTE
+const originalToggleTheme = toggleTheme;
+toggleTheme = function() {
+  originalToggleTheme();
+  if (isAnalysisMode && datosAnalizados.length > 0) {
+    procesarAnalisis();
+  }
+}

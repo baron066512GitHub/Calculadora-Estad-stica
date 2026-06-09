@@ -26,19 +26,21 @@ function toggleTheme() {
 function switchTab(tab) {
   activeTab = tab;
   
-  // 1. Actualizar estado activo de los botones en el menú
+  // 1. Actualizar estado activo de los botones en el menú (AGREGADO form-est)
   document.getElementById('tab-btn-formulas').classList.toggle('active', tab === 'formulas');
   document.getElementById('tab-btn-sim').classList.toggle('active', tab === 'sim');
   document.getElementById('tab-btn-calc').classList.toggle('active', tab === 'calc');
   document.getElementById('tab-btn-autolavado').classList.toggle('active', tab === 'autolavado');
+  document.getElementById('tab-btn-form-est').classList.toggle('active', tab === 'form-est'); // <-- NUEVO
   
-  // 2. Ocultar todas las vistas principales
+  // 2. Ocultar/Mostrar vistas principales (AGREGADO form-est)
   document.getElementById('view-formulas').style.display = tab === 'formulas' ? 'block' : 'none';
   document.getElementById('view-sim').style.display = tab === 'sim' ? 'block' : 'none';
   document.getElementById('view-calc').style.display = tab === 'calc' ? 'block' : 'none';
   document.getElementById('view-autolavado').style.display = tab === 'autolavado' ? 'block' : 'none';
+  document.getElementById('view-form-est').style.display = tab === 'form-est' ? 'block' : 'none'; // <-- NUEVO
 
-  // 3. Lógica específica para la vista de Calculadoras (Calculadora P)
+  // 3. Lógica específica para la vista de Calculadoras (Se mantiene igual)
   if (tab === 'calc') {
     document.getElementById('calc-warning').style.display = 'none';
     document.getElementById('calc-normal-content').style.display = 'none';
@@ -165,27 +167,34 @@ function copyToClipboard() {
 }
 
 // --- GESTOR DE MODOS (SIMULACIÓN <-> DESCRIPTIVA) ---
+// --- GESTOR DE MODOS (SIMULACIÓN <-> DESCRIPTIVA) ---
 function toggleMainMode() {
-  const descWorkspace = document.getElementById('view-descriptive-workspace');
-  // IDs de los contenedores que pertenecen al modo simulación
-  const mainViews = [document.getElementById('view-formulas'), document.getElementById('view-sim'), document.getElementById('view-calc')];
+  const descWorkspace = document.getElementById('view-analysis'); // Ojo al ID que uses para el análisis
+  // AGREGADOS view-autolavado y view-form-est para que desaparezcan en modo Análisis
+  const mainViews = [
+    document.getElementById('view-formulas'), 
+    document.getElementById('view-sim'), 
+    document.getElementById('view-calc'),
+    document.getElementById('view-autolavado'),
+    document.getElementById('view-form-est')
+  ];
   const tabsMenu = document.querySelector('.tabs');
-  const distSelector = document.getElementById('wrapper-dist-selector');
+  const distSelector = document.getElementById('dist-selector');
   const btn = document.getElementById('btn-toggle-analysis');
 
   if (appMainMode === 'distribuciones') {
     appMainMode = 'descriptiva';
-    btn.textContent = '🎲 Volver a Simulaciones';
-    mainViews.forEach(v => v.style.display = 'none');
+    btn.textContent = '🎲 Volver a Simulador';
+    mainViews.forEach(v => { if (v) v.style.display = 'none'; });
     tabsMenu.style.display = 'none';
-    distSelector.style.display = 'none';
-    descWorkspace.style.display = 'block';
+    distSelector.disabled = true;
+    if (descWorkspace) descWorkspace.style.display = 'block';
   } else {
     appMainMode = 'distribuciones';
     btn.textContent = '📊 Analizar Datos';
-    descWorkspace.style.display = 'none';
+    if (descWorkspace) descWorkspace.style.display = 'none';
     tabsMenu.style.display = 'flex';
-    distSelector.style.display = 'block';
+    distSelector.disabled = false;
     // Volver a la pestaña activa
     switchTab(activeTab);
   }

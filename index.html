@@ -34,6 +34,7 @@
     <button class="tab" id="tab-btn-sim" onclick="switchTab('sim')">🎲 Simulación</button>
     <button class="tab" id="tab-btn-calc" onclick="switchTab('calc')">📊 Calculadora P</button> 
     <button class="tab" id="tab-btn-autolavado" onclick="switchTab('autolavado')">🚗 Autolavado</button>
+    <button class="tab" id="tab-btn-form-est" onclick="switchTab('form-est')">📘 Fórmulas Descriptiva</button>
   </div>
 
   <div id="view-formulas">
@@ -862,6 +863,155 @@
       <div class="card-title">Distribución de Frecuencias (Histograma)</div>
       <div style="height: 300px; position: relative; width: 100%;">
         <canvas id="al-grafico-histograma"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <div id="view-form-est" style="display:none;">
+    
+    <div class="card">
+      <div class="card-title">1. Medidas de Tendencia Central <span class="badge badge-blue">Posición</span></div>
+      
+      <div class="formula-block blue">
+        <div class="formula-name">Media Aritmética (Promedio)</div>
+        <div class="formula-main">Poblacional: <b>μ</b> = (Σ X<sub>i</sub>) / N &nbsp;&nbsp;|&nbsp;&nbsp; Muestral: <b>X̄</b> = (Σ x<sub>i</sub>) / n</div>
+        <div class="formula-main" style="font-size: 15px; margin-top: 8px;">Datos Agrupados: <b>X̄</b> = (Σ f<sub>i</sub> · X<sub>i</sub>) / n</div>
+        <div class="formula-desc">Representa el centro de gravedad de los datos. En datos agrupados, X<sub>i</sub> es la marca de clase y f<sub>i</sub> es la frecuencia absoluta.</div>
+      </div>
+
+      <div class="formula-block blue">
+        <div class="formula-name">Mediana (Me)</div>
+        <div class="formula-main">No Agrupados: Valor central (Posición: n/2)</div>
+        <div class="formula-main" style="font-size: 15px; margin-top: 8px;">Agrupados: <b>Me</b> = L<sub>i</sub> + [ (n/2 − F<sub>i−1</sub>) / f<sub>i</sub> ] · c</div>
+        <div class="formula-desc">Es el valor que divide la distribución en dos partes iguales (50% inferiores y 50% superiores).</div>
+        <div class="formula-vars">
+          <div class="var-row"><span class="var-sym">L<sub>i</sub></span><span class="var-def">Límite inferior de la clase mediana.</span></div>
+          <div class="var-row"><span class="var-sym">F<sub>i−1</sub></span><span class="var-def">Frecuencia acumulada de la clase anterior.</span></div>
+          <div class="var-row"><span class="var-sym">c</span><span class="var-def">Amplitud del intervalo de clase.</span></div>
+        </div>
+      </div>
+
+      <div class="formula-block blue">
+        <div class="formula-name">Moda (Mo)</div>
+        <div class="formula-main">No Agrupados: Valor que más se repite.</div>
+        <div class="formula-main" style="font-size: 15px; margin-top: 8px;">Agrupados: <b>Mo</b> = L<sub>i</sub> + [ d<sub>1</sub> / (d<sub>1</sub> + d<sub>2</sub>) ] · c</div>
+        <div class="formula-desc">Es el valor con mayor frecuencia absoluta. En datos agrupados se interpola usando la frecuencia de las clases adyacentes.</div>
+        <div class="formula-vars">
+          <div class="var-row"><span class="var-sym">d<sub>1</sub></span><span class="var-def">Frecuencia de clase modal menos frecuencia de clase anterior (f<sub>i</sub> - f<sub>i−1</sub>).</span></div>
+          <div class="var-row"><span class="var-sym">d<sub>2</sub></span><span class="var-def">Frecuencia de clase modal menos frecuencia de clase siguiente (f<sub>i</sub> - f<sub>i+1</sub>).</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">2. Medidas de Dispersión <span class="badge badge-amber">Variabilidad</span></div>
+      
+      <div class="formula-block amber">
+        <div class="formula-name">Varianza (S² / σ²)</div>
+        <div class="formula-main">Poblacional: <b>σ²</b> = Σ(X<sub>i</sub> − μ)² / N</div>
+        <div class="formula-main" style="font-size: 15px; margin-top: 8px;">Muestral: <b>S²</b> = Σ(x<sub>i</sub> − X̄)² / (n − 1)</div>
+        <div class="formula-desc">Mide el promedio de las desviaciones al cuadrado respecto a la media. Para la muestra, dividir entre (n-1) la hace un estimador insesgado (Corrección de Bessel).</div>
+      </div>
+
+      <div class="formula-block amber">
+        <div class="formula-name">Desviación Estándar (S / σ)</div>
+        <div class="formula-main">Poblacional: <b>σ</b> = √σ² &nbsp;&nbsp;|&nbsp;&nbsp; Muestral: <b>S</b> = √S²</div>
+        <div class="formula-desc">Es la raíz cuadrada de la varianza. Regresa la medida de dispersión a las unidades originales de la variable.</div>
+      </div>
+
+      <div class="formula-block amber">
+        <div class="formula-name">Coeficiente de Variación (Cv)</div>
+        <div class="formula-main"><b>Cv</b> = S / |X̄|</div>
+        <div class="formula-desc">Mide la dispersión relativa respecto a la media. Es útil para comparar la variabilidad de conjuntos de datos con distintas unidades. Suele multiplicarse por 100 para expresarlo en porcentaje.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">3. Medidas de Forma <span class="badge badge-purple">Distribución</span></div>
+      
+      <div class="formula-block purple">
+        <div class="formula-name">Asimetría de Fisher (γ₁)</div>
+        <div class="formula-main"><b>γ₁</b> = [ Σ(x<sub>i</sub> − X̄)³ / n ] / S³</div>
+        <div class="formula-desc">Evalúa hacia qué lado de la media se alargan las colas de la distribución.<br>• γ₁ = 0: Simétrica (Normal).<br>• γ₁ > 0: Asimetría Positiva (Cola a la derecha).<br>• γ₁ < 0: Asimetría Negativa (Cola a la izquierda).</div>
+      </div>
+
+      <div class="formula-block purple">
+        <div class="formula-name">Curtosis / Apuntamiento (γ₂)</div>
+        <div class="formula-main"><b>γ₂</b> = [ Σ(x<sub>i</sub> − X̄)⁴ / n ] / S⁴ − 3</div>
+        <div class="formula-desc">Mide el grado de concentración de datos alrededor de la zona central (agudeza de la curva). Se resta 3 para referenciarla a la Normal.<br>• γ₂ = 0: Mesocúrtica (Como la Normal).<br>• γ₂ > 0: Leptocúrtica (Muy concentrada/Puntiaguda).<br>• γ₂ < 0: Platicúrtica (Plana/Achatada).</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">4. Función Generadora de Momentos (FGM) <span class="badge badge-green">Teoría Estocástica</span></div>
+      
+      <div class="formula-block">
+        <div class="formula-name">FGM para Variable Discreta</div>
+        <div class="formula-main"><b>M<sub>X</sub>(t)</b> = E[e<sup>tX</sup>] = Σ e<sup>tx</sup> · P(X = x)</div>
+        <div class="formula-desc">Transforma la suma de probabilidades en una función continua dependiente de t.</div>
+      </div>
+
+      <div class="formula-block">
+        <div class="formula-name">FGM para Variable Continua</div>
+        <div class="formula-main"><b>M<sub>X</sub>(t)</b> = E[e<sup>tX</sup>] = ∫<sub>-∞</sub><sup>∞</sup> e<sup>tx</sup> · f(x) dx</div>
+        <div class="formula-desc">Utiliza la integración sobre la PDF. Es fundamental para demostrar el Teorema del Límite Central y sumar variables independientes.</div>
+      </div>
+      
+      <div class="formula-block">
+        <div class="formula-name">Propiedad de Generación de Momentos</div>
+        <div class="formula-main"><b>E[X<sup>n</sup>]</b> = dⁿ M<sub>X</sub>(t) / dtⁿ |<sub>t=0</sub></div>
+        <div class="formula-desc">La n-ésima derivada de la FGM, evaluada en t = 0, da exactamente el momento central de orden n (Media, E[X²], etc.).</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">5. Series Matemáticas Notables <span class="badge badge-blue">Para Discretas</span></div>
+      
+      <div class="formula-block blue">
+        <div class="formula-name">Serie Exponencial (Maclaurin)</div>
+        <div class="formula-main"><b>e<sup>λ</sup></b> = Σ<sub>(x=0)</sub><sup>∞</sup> (λ<sup>x</sup> / x!)</div>
+        <div class="formula-desc">Crucial para demostrar que la suma de las probabilidades de la distribución de Poisson es igual a 1, y para calcular su Función Generadora de Momentos.</div>
+      </div>
+
+      <div class="formula-block blue">
+        <div class="formula-name">Serie Geométrica Convergente (Infinita)</div>
+        <div class="formula-main"><b>Σ<sub>(x=0)</sub><sup>∞</sup> a · r<sup>x</sup></b> = a / (1 - r)</div>
+        <div class="formula-desc">Converge estrictamente si el valor absoluto de la razón es menor a uno (<b>|r| < 1</b>). Es la base para demostrar que la suma de las probabilidades de las distribuciones Geométrica y Binomial Negativa da 1.</div>
+      </div>
+
+      <div class="formula-block blue">
+        <div class="formula-name">Derivada de la Serie Geométrica</div>
+        <div class="formula-main"><b>Σ<sub>(x=1)</sub><sup>∞</sup> x · r<sup>x-1</sup></b> = 1 / (1 - r)²</div>
+        <div class="formula-desc">Se obtiene derivando la serie geométrica respecto a 'r'. Este "truco" algebraico se usa frecuentemente para calcular el valor esperado E[X] y la varianza en variables aleatorias discretas (<b>|r| < 1</b>).</div>
+      </div>
+
+      <div class="formula-block blue">
+        <div class="formula-name">Serie Geométrica Parcial (Suma Finita)</div>
+        <div class="formula-main"><b>Σ<sub>(x=0)</sub><sup>n-1</sup> a · r<sup>x</sup></b> = a · (1 - r<sup>n</sup>) / (1 - r)</div>
+        <div class="formula-desc">Suma de los primeros 'n' términos. Esta serie siempre converge, sin importar el valor de 'r' (siempre y cuando r ≠ 1). Útil para variables aleatorias truncadas o de soporte finito.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">6. Integrales Notables <span class="badge badge-amber">Para Continuas</span></div>
+      
+      <div class="formula-block amber">
+        <div class="formula-name">Integral de la Función Gamma (Euler)</div>
+        <div class="formula-main"><b>∫<sub>0</sub><sup>∞</sup> x<sup>n-1</sup> · e<sup>-λx</sup> dx</b> = Γ(n) / λ<sup>n</sup> = (n - 1)! / λ<sup>n</sup></div>
+        <div class="formula-desc">El "salvavidas" estadístico. Aparece en casi todos los cálculos de momentos de la distribución Exponencial y Gamma, evitando tener que hacer integración por partes repetidas veces.</div>
+      </div>
+
+      <div class="formula-block amber">
+        <div class="formula-name">Integral Gaussiana</div>
+        <div class="formula-main"><b>∫<sub>-∞</sub><sup>∞</sup> e<sup>-x²/2</sup> dx</b> = √(2π)</div>
+        <div class="formula-desc">El núcleo matemático de la distribución Normal. De esta integral sale la famosa constante de normalización 1/√(2π).</div>
+      </div>
+
+      <div class="formula-block amber">
+        <div class="formula-name">Integración por Partes</div>
+        <div class="formula-main"><b>∫ u dv</b> = u·v - ∫ v du</div>
+        <div class="formula-desc">Regla fundamental para integrar productos de funciones (por ejemplo, polinomios multiplicados por exponenciales) cuando no se puede aplicar directamente la función Gamma.</div>
       </div>
     </div>
 

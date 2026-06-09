@@ -33,6 +33,7 @@
     <button class="tab active" id="tab-btn-formulas" onclick="switchTab('formulas')">📐 Fórmulas</button>
     <button class="tab" id="tab-btn-sim" onclick="switchTab('sim')">🎲 Simulación</button>
     <button class="tab" id="tab-btn-calc" onclick="switchTab('calc')">📊 Calculadora P</button> 
+    <button class="tab" id="tab-btn-autolavado" onclick="switchTab('autolavado')">🚗 Autolavado</button>
   </div>
 
   <div id="view-formulas">
@@ -827,13 +828,53 @@
     </div>
   </div>
 
-</div>
+  </div>
+
+  <div id="view-autolavado" style="display:none;">
+    <div class="card">
+        <div class="card-title">Configuración de Etapas del Autolavado</div>
+        <div id="al-etapas-container"></div>
+        <button id="al-btn-agregar-etapa" class="btn-outline">+ Agregar Etapa</button>
+    </div>
+    
+    <div class="card">
+        <div class="card-title">Parámetros de Simulación</div>
+        <div class="grid2">
+            <div><label>N° Autos (k)</label><input type="number" id="al-num-autos" value="100"></div>
+            <div><label>Horas de operación</label><input type="number" id="al-horas-operacion" value="8"></div>
+        </div>
+        <button id="al-btn-simular" class="btn">▶ Ejecutar Simulación</button>
+        <button id="al-btn-exportar" class="btn-outline2">⬇ Exportar CSV</button>
+    </div>
+
+    <div id="al-metricas-container"></div>
+
+    <div class="card" id="al-results-container"></div> 
+    
+    <div class="card">
+      <div class="card-title">Tiempo Total por Auto</div>
+      <div style="height: 300px; position: relative; width: 100%;">
+        <canvas id="al-grafico-barras"></canvas>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Distribución de Frecuencias (Histograma)</div>
+      <div style="height: 300px; position: relative; width: 100%;">
+        <canvas id="al-grafico-histograma"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+  </div> <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <script src="math.js"></script>
   <script src="ui.js"></script>
   <script src="simulacion.js"></script>
   <script src="calculator.js"></script>
   <script src="analysis.js"></script>
+  <script src="autolavado.js"></script>
 
 </body>
 </html>

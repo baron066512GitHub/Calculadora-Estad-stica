@@ -396,3 +396,24 @@ function generarTablaFrecuencias(xs) {
     tbody.appendChild(tr);
   });
 }
+
+function initSimulacion() {
+  // 1. Conectar botón de generar simulación
+  const btnSim = document.getElementById('btn-simular');
+  if (btnSim) {
+    btnSim.addEventListener('click', ejecutarSimulacion);
+  }
+
+  // 2. Conectar eventos de actualización automática (opcional)
+  const inputs = document.querySelectorAll('input, select');
+  inputs.forEach(input => {
+    input.addEventListener('input', () => {
+      // Si el usuario cambia un parámetro, actualizamos texto del botón
+      if(typeof updateBtnText === 'function') updateBtnText();
+    });
+  });
+
+  // 3. Inicializar estado visual
+  changeDistribution();
+  console.log("Sistema de simulación inicializado correctamente.");
+}

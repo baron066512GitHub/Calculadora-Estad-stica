@@ -496,10 +496,25 @@ function drawCalcUniCDF(alpha, beta, a, b) {
 }
 
 // INICIALIZACIÓN
-setTimeout(() => { 
+/*setTimeout(() => { 
   if (typeof cambiarOpcionCalculadora === 'function') cambiarOpcionCalculadora(1); 
   if (typeof cambiarOpcionCalculadoraExp === 'function') cambiarOpcionCalculadoraExp(1); 
   if (typeof cambiarOpcionCalculadoraPoi === 'function') cambiarOpcionCalculadoraPoi(1); 
   if (typeof cambiarOpcionCalculadoraUni === 'function') cambiarOpcionCalculadoraUni(1);
   if (typeof updateCalculatedValues === 'function') updateCalculatedValues();
-}, 100);
+}, 100);*/
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Inicializar modo de distribución por defecto
+  if (typeof initSimulacion === 'function') {
+    initSimulacion();
+  }
+  
+  // Si tienes otras calculadoras, asegúrate de que también se inicien
+  setTimeout(() => {
+    if (typeof cambiarOpcionCalculadora === 'function') cambiarOpcionCalculadora(1);
+    if (typeof cambiarOpcionCalculadoraExp === 'function') cambiarOpcionCalculadoraExp(1);
+    if (typeof cambiarOpcionCalculadoraPoi === 'function') cambiarOpcionCalculadoraPoi(1);
+    if (typeof cambiarOpcionCalculadoraUni === 'function') cambiarOpcionCalculadoraUni(1);
+  }, 200);
+});

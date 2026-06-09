@@ -3,10 +3,11 @@
 // =====================================================================
 
 // Variables de control global de simulación
-let resultados = [];
-let paramsGlobales = {};
+window.resultados = [];
+window.paramsGlobales = {};
 let currentDist = 'normal';
 let activeTab = 'formulas';
+let appMainMode = 'distribuciones'; 
 
 // LÓGICA DE TEMAS (CLARO / OSCURO)
 function toggleTheme() {
@@ -21,16 +22,23 @@ function toggleTheme() {
 }
 
 // MANEJO DE PESTAÑAS
+// --- MANEJO DE PESTAÑAS (FÓRMULAS / SIMULACIÓN / CALCULAR P / AUTOLAVADO) ---
 function switchTab(tab) {
   activeTab = tab;
+  
+  // 1. Actualizar estado activo de los botones en el menú
   document.getElementById('tab-btn-formulas').classList.toggle('active', tab === 'formulas');
   document.getElementById('tab-btn-sim').classList.toggle('active', tab === 'sim');
   document.getElementById('tab-btn-calc').classList.toggle('active', tab === 'calc');
+  document.getElementById('tab-btn-autolavado').classList.toggle('active', tab === 'autolavado');
   
+  // 2. Ocultar todas las vistas principales
   document.getElementById('view-formulas').style.display = tab === 'formulas' ? 'block' : 'none';
   document.getElementById('view-sim').style.display = tab === 'sim' ? 'block' : 'none';
   document.getElementById('view-calc').style.display = tab === 'calc' ? 'block' : 'none';
+  document.getElementById('view-autolavado').style.display = tab === 'autolavado' ? 'block' : 'none';
 
+  // 3. Lógica específica para la vista de Calculadoras (Calculadora P)
   if (tab === 'calc') {
     document.getElementById('calc-warning').style.display = 'none';
     document.getElementById('calc-normal-content').style.display = 'none';
@@ -56,6 +64,13 @@ function switchTab(tab) {
       if (typeof ejecutarCalculadoraUniPorOpcion === 'function') ejecutarCalculadoraUniPorOpcion();
     } else {
       document.getElementById('calc-warning').style.display = 'block';
+    }
+  }
+
+  // 4. Lógica específica para inicializar Autolavado
+  if (tab === 'autolavado') {
+    if (typeof initAutolavado === 'function') {
+      initAutolavado();
     }
   }
 }
@@ -147,4 +162,31 @@ function copyToClipboard() {
   navigator.clipboard.writeText(txt).then(() => {
     const msg = document.getElementById('copy-msg'); msg.style.display = 'block'; setTimeout(() => msg.style.display = 'none', 2500);
   });
+}
+
+// --- GESTOR DE MODOS (SIMULACIÓN <-> DESCRIPTIVA) ---
+function toggleMainMode() {
+  const descWorkspace = document.getElementById('view-descriptive-workspace');
+  // IDs de los contenedores que pertenecen al modo simulación
+  const mainViews = [document.getElementById('view-formulas'), document.getElementById('view-sim'), document.getElementById('view-calc')];
+  const tabsMenu = document.querySelector('.tabs');
+  const distSelector = document.getElementById('wrapper-dist-selector');
+  const btn = document.getElementById('btn-toggle-analysis');
+
+  if (appMainMode === 'distribuciones') {
+    appMainMode = 'descriptiva';
+    btn.textContent = '🎲 Volver a Simulaciones';
+    mainViews.forEach(v => v.style.display = 'none');
+    tabsMenu.style.display = 'none';
+    distSelector.style.display = 'none';
+    descWorkspace.style.display = 'block';
+  } else {
+    appMainMode = 'distribuciones';
+    btn.textContent = '📊 Analizar Datos';
+    descWorkspace.style.display = 'none';
+    tabsMenu.style.display = 'flex';
+    distSelector.style.display = 'block';
+    // Volver a la pestaña activa
+    switchTab(activeTab);
+  }
 }

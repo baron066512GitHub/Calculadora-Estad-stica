@@ -457,3 +457,100 @@ canvas {
 #analysis-input:focus {
   border-color: #00d4aa;
 }
+
+/* ===================================================================== */
+/* --- DISEÑO RESPONSIVO (MÓVILES Y TABLETS) --- */
+/* ===================================================================== */
+
+@media screen and (max-width: 768px) {
+  /* 1. Cabecera y Controles */
+  .header-container {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .controls-header {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: stretch;
+  }
+
+  .controls-header select {
+    flex: 1 1 100%; /* El selector ocupa toda la fila arriba */
+    margin-bottom: 8px;
+  }
+
+  .controls-header .btn-analysis {
+    flex: 1; /* El botón de análisis ocupa el espacio restante */
+  }
+
+  /* 2. Pestañas de Navegación */
+  .tabs {
+    flex-wrap: wrap; /* Permite que las pestañas bajen a la siguiente línea */
+    border-radius: 8px;
+  }
+
+  .tab {
+    flex: 1 1 45%; /* Dos pestañas por fila */
+    font-size: 12px;
+    padding: 8px 4px;
+    text-align: center;
+  }
+
+  /* 3. Cuadrículas (Grids) */
+  .grid2 {
+    grid-template-columns: 1fr; /* Colapsa todas las 2 columnas a 1 sola columna */
+    gap: 12px;
+  }
+
+  /* 4. Textos y Fórmulas */
+  h1 {
+    font-size: 16px; /* Título principal más pequeño */
+  }
+
+  .formula-main {
+    font-size: 15px;
+    overflow-x: auto; /* Si la fórmula es muy larga, permite deslizarla horizontalmente sin romper la pantalla */
+    white-space: nowrap;
+    padding-bottom: 4px;
+  }
+
+  .var-row {
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .var-sym {
+    margin-bottom: 2px;
+  }
+
+  /* 5. Estadísticas Descriptivas */
+  .stat-row {
+    flex-direction: column;
+    gap: 6px;
+    align-items: flex-start;
+  }
+
+  .stat-row > div {
+    width: 100% !important; /* Obliga a que los datos de análisis se apilen */
+    display: flex;
+    justify-content: space-between; /* Mantiene la etiqueta a la izquierda y el valor a la derecha */
+  }
+
+  /* 6. Gráficos Canvas */
+  canvas {
+    height: 200px !important; /* Da un poco más de altura vertical en móviles para que no se vea aplastado */
+  }
+
+  /* 7. Flujo de Pasos (Poisson) */
+  .flow {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .flow-arrow {
+    transform: rotate(90deg); /* Voltea las flechas hacia abajo */
+    margin: 4px 0;
+  }
+}

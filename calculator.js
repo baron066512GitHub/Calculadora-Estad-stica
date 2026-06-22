@@ -204,23 +204,41 @@ function cambiarOpcionCalculadoraExp(opcion) {
 
 function ejecutarCalculadoraExpPorOpcion() {
   if (currentDist !== 'exponencial') return;
-  const lambda = Math.max(0.001, parseFloat(document.getElementById('calc-exp-lambda').value) || 2);
-  let a = parseFloat(document.getElementById('calc-exp-a').value) || 0;
-  let b = parseFloat(document.getElementById('calc-exp-b').value) || 0;
+
+  const lambdaRaw = document.getElementById('calc-exp-lambda').value;
+  const aRaw = document.getElementById('calc-exp-a').value;
+  const bRaw = document.getElementById('calc-exp-b').value;
+
+  // Validación anti-crasheo
+  if (lambdaRaw === "" || aRaw === "" || bRaw === "") return;
+
+  const lambda = parseFloat(lambdaRaw);
+  let a = parseFloat(aRaw);
+  let b = parseFloat(bRaw);
+
+  if (isNaN(lambda) || isNaN(a) || isNaN(b) || lambda <= 0) return;
   if (a < 0) a = 0; if (b < 0) b = 0;
 
   const cdfA = expCDF(a, lambda), cdfB = expCDF(b, lambda);
   let resultadoFinal = 0, labelTexto = "", tituloGrafico = "";
+  
   switch (calcExpOpcionActiva) {
     case 1: resultadoFinal = cdfA; labelTexto = `P(X ≤ ${a}) =`; tituloGrafico = `Área Sombreada desde 0 hasta a = ${a}`; break;
     case 2: resultadoFinal = 1 - cdfA; labelTexto = `P(X > ${a}) =`; tituloGrafico = `Área Sombreada desde a = ${a} hacia ∞`; break;
     case 3: resultadoFinal = b >= a ? (cdfB - cdfA) : 0; labelTexto = b >= a ? `P(${a} ≤ X ≤ ${b}) =` : "Error: Límite 'a' debe ser ≤ 'b'"; tituloGrafico = b >= a ? `Área Sombreada entre ${a} y ${b}` : "Error"; break;
     case 4: resultadoFinal = 1 - (b >= a ? (cdfB - cdfA) : 0); labelTexto = b >= a ? `P(X < ${a} o X > ${b}) =` : "Error"; tituloGrafico = b >= a ? `Áreas Fuera de [${a}, ${b}]` : "Error"; break;
   }
-  document.getElementById('res-exp-calc-label').textContent = labelTexto;
-  document.getElementById('res-exp-calc-value').textContent = (typeof resultadoFinal === 'number') ? resultadoFinal.toFixed(6) : "-";
-  document.getElementById('pdf-exp-graph-title').textContent = `Curva de Densidad (PDF) — ${tituloGrafico}`;
-  drawCalcExpPDF(lambda, a, b); drawCalcExpCDF(lambda, a, b);
+  
+  const labelEl = document.getElementById('res-exp-calc-label');
+  const valEl = document.getElementById('res-exp-calc-value');
+  const titleEl = document.getElementById('pdf-exp-graph-title');
+
+  if (labelEl) labelEl.textContent = labelTexto;
+  if (valEl) valEl.textContent = (typeof resultadoFinal === 'number') ? resultadoFinal.toFixed(6) : "-";
+  if (titleEl) titleEl.textContent = `Curva de Densidad (PDF) — ${tituloGrafico}`;
+  
+  drawCalcExpPDF(lambda, a, b); 
+  drawCalcExpCDF(lambda, a, b);
 }
 
 function drawCalcExpPDF(lambda, a, b) {
@@ -331,9 +349,19 @@ function cambiarOpcionCalculadoraPoi(opcion) {
 
 function ejecutarCalculadoraPoiPorOpcion() {
   if (currentDist !== 'poisson') return;
-  const lambda = Math.max(0.01, parseFloat(document.getElementById('calc-poi-lambda').value) || 4);
-  let a = parseInt(document.getElementById('calc-poi-a').value) || 0;
-  let b = parseInt(document.getElementById('calc-poi-b').value) || 0;
+  
+  const lambdaRaw = document.getElementById('calc-poi-lambda').value;
+  const aRaw = document.getElementById('calc-poi-a').value;
+  const bRaw = document.getElementById('calc-poi-b').value;
+
+  // Validación anti-crasheo
+  if (lambdaRaw === "" || aRaw === "" || bRaw === "") return;
+
+  const lambda = parseFloat(lambdaRaw);
+  let a = parseInt(aRaw);
+  let b = parseInt(bRaw);
+
+  if (isNaN(lambda) || isNaN(a) || isNaN(b) || lambda <= 0) return;
   if (a < 0) a = 0; if (b < 0) b = 0;
 
   const cdfA = poissonCDF(a, lambda), cdfB = poissonCDF(b, lambda), cdfA_minus_1 = poissonCDF(a - 1, lambda);
@@ -345,10 +373,17 @@ function ejecutarCalculadoraPoiPorOpcion() {
     case 3: resultadoFinal = b >= a ? (cdfB - cdfA_minus_1) : 0; labelTexto = b >= a ? `P(${a} ≤ X ≤ ${b}) =` : "Error: 'a' debe ser ≤ 'b'"; tituloGrafico = b >= a ? `Masas en el intervalo [${a}, ${b}]` : "Error de Intervalo"; break;
     case 4: resultadoFinal = 1 - (b >= a ? (cdfB - cdfA_minus_1) : 0); labelTexto = b >= a ? `P(X < ${a} o X > ${b}) =` : "Error: 'a' debe ser ≤ 'b'"; tituloGrafico = b >= a ? `Masas Fuera de [${a}, ${b}]` : "Error de Intervalo"; break;
   }
-  document.getElementById('res-poi-calc-label').textContent = labelTexto;
-  document.getElementById('res-poi-calc-value').textContent = (typeof resultadoFinal === 'number') ? resultadoFinal.toFixed(6) : "-";
-  document.getElementById('pdf-poi-graph-title').textContent = `Probabilidad de Masa (PMF) — ${tituloGrafico}`;
-  drawCalcPoiPMF(lambda, a, b); drawCalcPoiCDF(lambda, a, b);
+  
+  const labelEl = document.getElementById('res-poi-calc-label');
+  const valEl = document.getElementById('res-poi-calc-value');
+  const titleEl = document.getElementById('pdf-poi-graph-title');
+
+  if (labelEl) labelEl.textContent = labelTexto;
+  if (valEl) valEl.textContent = (typeof resultadoFinal === 'number') ? resultadoFinal.toFixed(6) : "-";
+  if (titleEl) titleEl.textContent = `Probabilidad de Masa (PMF) — ${tituloGrafico}`;
+  
+  drawCalcPoiPMF(lambda, a, b); 
+  drawCalcPoiCDF(lambda, a, b);
 }
 
 function drawCalcPoiPMF(lambda, a, b) {
@@ -442,23 +477,43 @@ function cambiarOpcionCalculadoraUni(opcion) {
 
 function ejecutarCalculadoraUniPorOpcion() {
   if (currentDist !== 'uniforme') return;
-  let alpha = parseFloat(document.getElementById('calc-uni-min').value) || 0;
-  let beta = parseFloat(document.getElementById('calc-uni-max').value) || 10;
-  if (alpha >= beta) beta = alpha + 1;
-  let a = parseFloat(document.getElementById('calc-uni-a').value) || 0;
-  let b = parseFloat(document.getElementById('calc-uni-b').value) || 0;
+
+  const minRaw = document.getElementById('calc-uni-min').value;
+  const maxRaw = document.getElementById('calc-uni-max').value;
+  const aRaw = document.getElementById('calc-uni-a').value;
+  const bRaw = document.getElementById('calc-uni-b').value;
+
+  // Validación anti-crasheo
+  if (minRaw === "" || maxRaw === "" || aRaw === "" || bRaw === "") return;
+
+  let alpha = parseFloat(minRaw);
+  let beta = parseFloat(maxRaw);
+  let a = parseFloat(aRaw);
+  let b = parseFloat(bRaw);
+
+  if (isNaN(alpha) || isNaN(beta) || isNaN(a) || isNaN(b)) return;
+  if (alpha >= beta) return; // Evita división por cero y crasheo en canvas
+
   const cdfA = uniformCDF(a, alpha, beta), cdfB = uniformCDF(b, alpha, beta);
   let resultadoFinal = 0, labelTexto = "", tituloGrafico = "";
+  
   switch (calcUniOpcionActiva) {
     case 1: resultadoFinal = cdfA; labelTexto = `P(X ≤ ${a}) =`; tituloGrafico = `Área Sombreada hasta a = ${a}`; break;
     case 2: resultadoFinal = 1 - cdfA; labelTexto = `P(X > ${a}) =`; tituloGrafico = `Área Sombreada desde a = ${a}`; break;
     case 3: resultadoFinal = b >= a ? (cdfB - cdfA) : 0; labelTexto = b >= a ? `P(${a} ≤ X ≤ ${b}) =` : "Error: 'a' debe ser ≤ 'b'"; tituloGrafico = b >= a ? `Área Sombreada entre ${a} y ${b}` : "Error"; break;
     case 4: resultadoFinal = 1 - (b >= a ? (cdfB - cdfA) : 0); labelTexto = b >= a ? `P(X < ${a} o X > ${b}) =` : "Error"; tituloGrafico = b >= a ? `Áreas Fuera de [${a}, ${b}]` : "Error"; break;
   }
-  document.getElementById('res-uni-calc-label').textContent = labelTexto;
-  document.getElementById('res-uni-calc-value').textContent = (typeof resultadoFinal === 'number') ? resultadoFinal.toFixed(6) : "-";
-  document.getElementById('pdf-uni-graph-title').textContent = `Densidad Uniforme (PDF) — ${tituloGrafico}`;
-  drawCalcUniPDF(alpha, beta, a, b); drawCalcUniCDF(alpha, beta, a, b);
+  
+  const labelEl = document.getElementById('res-uni-calc-label');
+  const valEl = document.getElementById('res-uni-calc-value');
+  const titleEl = document.getElementById('pdf-uni-graph-title');
+
+  if (labelEl) labelEl.textContent = labelTexto;
+  if (valEl) valEl.textContent = (typeof resultadoFinal === 'number') ? resultadoFinal.toFixed(6) : "-";
+  if (titleEl) titleEl.textContent = `Densidad Uniforme (PDF) — ${tituloGrafico}`;
+  
+  drawCalcUniPDF(alpha, beta, a, b); 
+  drawCalcUniCDF(alpha, beta, a, b);
 }
 
 function drawCalcUniPDF(alpha, beta, a, b) {
@@ -550,9 +605,19 @@ function cambiarOpcionCalculadoraTS(opcion) {
 
 function ejecutarCalculadoraTSPorOpcion() {
   if (currentDist !== 'tstudent') return;
-  const df = Math.max(1, parseInt(document.getElementById('calc-ts-df').value) || 5);
-  const a = parseFloat(document.getElementById('calc-ts-a').value) || 0;
-  const b = parseFloat(document.getElementById('calc-ts-b').value) || 0;
+
+  const dfRaw = document.getElementById('calc-ts-df').value;
+  const aRaw = document.getElementById('calc-ts-a').value;
+  const bRaw = document.getElementById('calc-ts-b').value;
+
+  // Validación anti-crasheo
+  if (dfRaw === "" || aRaw === "" || bRaw === "") return;
+
+  const df = parseInt(dfRaw);
+  const a = parseFloat(aRaw);
+  const b = parseFloat(bRaw);
+
+  if (isNaN(df) || isNaN(a) || isNaN(b) || df < 1) return;
 
   const cdfA = tStudentCDF(a, df);
   const cdfB = tStudentCDF(b, df);
@@ -565,9 +630,13 @@ function ejecutarCalculadoraTSPorOpcion() {
     case 4: resultadoFinal = 1 - (b >= a ? (cdfB - cdfA) : 0); labelTexto = b >= a ? `P(T < ${a} o T > ${b}) =` : "Error"; tituloGrafico = b >= a ? `Áreas de Colas Fuera de [${a}, ${b}]` : "Error"; break;
   }
 
-  document.getElementById('res-ts-calc-label').textContent = labelTexto;
-  document.getElementById('res-ts-calc-value').textContent = resultadoFinal.toFixed(6);
-  document.getElementById('pdf-ts-graph-title').textContent = `Curva de Densidad t-Student (ν=${df}) — ${tituloGrafico}`;
+  const labelEl = document.getElementById('res-ts-calc-label');
+  const valEl = document.getElementById('res-ts-calc-value');
+  const titleEl = document.getElementById('pdf-ts-graph-title');
+
+  if (labelEl) labelEl.textContent = labelTexto;
+  if (valEl) valEl.textContent = resultadoFinal.toFixed(6);
+  if (titleEl) titleEl.textContent = `Curva de Densidad t-Student (ν=${df}) — ${tituloGrafico}`;
 
   drawCalcTStudentPDF(df, a, b);
   drawCalcTStudentCDF(df, a, b);
@@ -655,9 +724,19 @@ function cambiarOpcionCalculadoraChi(opcion) {
 
 function ejecutarCalculadoraChiPorOpcion() {
   if (currentDist !== 'chicuadrado') return;
-  const df = Math.max(1, parseInt(document.getElementById('calc-chi-df').value) || 5);
-  const a = Math.max(0, parseFloat(document.getElementById('calc-chi-a').value) || 0);
-  const b = Math.max(0, parseFloat(document.getElementById('calc-chi-b').value) || 0);
+
+  const dfRaw = document.getElementById('calc-chi-df').value;
+  const aRaw = document.getElementById('calc-chi-a').value;
+  const bRaw = document.getElementById('calc-chi-b').value;
+
+  // Validación anti-crasheo
+  if (dfRaw === "" || aRaw === "" || bRaw === "") return;
+
+  const df = parseInt(dfRaw);
+  const a = Math.max(0, parseFloat(aRaw));
+  const b = Math.max(0, parseFloat(bRaw));
+
+  if (isNaN(df) || isNaN(a) || isNaN(b) || df < 1) return;
 
   const cdfA = chiCuadradoCDF(a, df);
   const cdfB = chiCuadradoCDF(b, df);
@@ -670,9 +749,13 @@ function ejecutarCalculadoraChiPorOpcion() {
     case 4: resultadoFinal = 1 - (b >= a ? (cdfB - cdfA) : 0); labelTexto = b >= a ? `P(𝒳² < ${a} o 𝒳² > ${b}) =` : "Error"; tituloGrafico = b >= a ? `Áreas Fuera de [${a}, ${b}]` : "Error"; break;
   }
 
-  document.getElementById('res-chi-calc-label').textContent = labelTexto;
-  document.getElementById('res-chi-calc-value').textContent = resultadoFinal.toFixed(6);
-  document.getElementById('pdf-chi-graph-title').textContent = `Curva de Densidad Chi-Cuadrado (ν=${df}) — ${tituloGrafico}`;
+  const labelEl = document.getElementById('res-chi-calc-label');
+  const valEl = document.getElementById('res-chi-calc-value');
+  const titleEl = document.getElementById('pdf-chi-graph-title');
+
+  if (labelEl) labelEl.textContent = labelTexto;
+  if (valEl) valEl.textContent = resultadoFinal.toFixed(6);
+  if (titleEl) titleEl.textContent = `Curva de Densidad Chi-Cuadrado (ν=${df}) — ${tituloGrafico}`;
 
   drawCalcChiPDF(df, a, b);
   drawCalcChiCDF(df, a, b);

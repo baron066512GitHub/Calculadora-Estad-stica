@@ -70,3 +70,102 @@ function uniformCDF(x, alpha, beta) {
   if (x > beta) return 1;
   return (x - alpha) / (beta - alpha);
 }
+
+// =====================================================================
+// --- LÓGICA t-STUDENT (CORREGIDA Y COMPLETA) ---
+// =====================================================================
+
+// Función Gamma de Euler (Aproximación de Lanczos)
+function gamma(n) {
+  const g = 7, p = [0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+  if (n < 0.5) return Math.PI / (Math.sin(Math.PI * n) * gamma(1 - n));
+  n -= 1; let x = p[0]; for (let i = 1; i < g + 2; i++) x += p[i] / (n + i);
+  let t = n + g + 0.5; return Math.sqrt(2 * Math.PI) * Math.pow(t, n + 0.5) * Math.exp(-t) * x;
+}
+
+// Función de Densidad de Probabilidad (PDF) de t-Student
+function tStudentPDF(x, df) {
+  const num = gamma((df + 1) / 2);
+  const den = Math.sqrt(df * Math.PI) * gamma(df / 2);
+  return (num / den) * Math.pow(1 + (x * x) / df, -(df + 1) / 2);
+}
+
+// Función de Distribución Acumulada (CDF) de t-Student via Integración Numérica (Regla de Simpson)
+function tStudentCDF(t, df) {
+  if (t === 0) return 0.5;
+  if (t < 0) return 1 - tStudentCDF(-t, df);
+  
+  // Integración desde 0 hasta t
+  let sum = 0;
+  const steps = 100;
+  const h = t / steps;
+  
+  for (let i = 0; i <= steps; i++) {
+    const x = i * h;
+    const fx = tStudentPDF(x, df);
+    if (i === 0 || i === steps) sum += fx;
+    else if (i % 2 === 1) sum += 4 * fx;
+    else sum += 2 * fx;
+  }
+  return 0.5 + (sum * h / 3);
+}
+
+// Generador de variables aleatorias t-Student (Método de composición analítica)
+function generarTStudent(df) {
+  // Generamos una variable Normal Estándar Z usando Box-Muller directo
+  const u1 = Math.random();
+  const u2 = Math.random();
+  const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+
+  // Generamos una Chi-Cuadrada con 'df' grados de libertad
+  let chi2 = 0;
+  for (let i = 0; i < df; i++) {
+    const u1_c = Math.random();
+    const u2_c = Math.random();
+    const z_c = Math.sqrt(-2 * Math.log(u1_c)) * Math.cos(2 * Math.PI * u2_c);
+    chi2 += z_c * z_c;
+  }
+
+  // Teorema: T = Z / sqrt(V / ν)
+  return z / Math.sqrt(chi2 / df);
+}
+
+// =====================================================================
+// --- LÓGICA CHI-CUADRADO (𝒳²) ---
+// =====================================================================
+
+// Función de Densidad de Probabilidad (PDF)
+function chiCuadradoPDF(x, df) {
+  if (x <= 0) return 0;
+  const num = Math.pow(x, (df / 2) - 1) * Math.exp(-x / 2);
+  const den = Math.pow(2, df / 2) * gamma(df / 2);
+  return num / den;
+}
+
+// Función de Distribución Acumulada (CDF) mediante regla de Simpson
+function chiCuadradoCDF(x, df) {
+  if (x <= 0) return 0;
+  let sum = 0;
+  const steps = 100;
+  const h = x / steps;
+  for (let i = 0; i <= steps; i++) {
+    const t = i * h;
+    const ft = chiCuadradoPDF(t, df);
+    if (i === 0 || i === steps) sum += ft;
+    else if (i % 2 === 1) sum += 4 * ft;
+    else sum += 2 * ft;
+  }
+  return (sum * h) / 3;
+}
+
+// Generador de simulación (Método: Suma de Z²)
+function generarChiCuadrado(df) {
+  let chi2 = 0;
+  for (let i = 0; i < df; i++) {
+    const u1 = Math.random();
+    const u2 = Math.random();
+    const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+    chi2 += z * z;
+  }
+  return chi2;
+}

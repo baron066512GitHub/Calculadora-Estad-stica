@@ -78,6 +78,9 @@ function switchTab(tab) {
 }
 
 // SELECTOR DE DISTRIBUCIÓN
+// =====================================================================
+// --- CONTROLADOR: SELECTOR DE DISTRIBUCIÓN (ACTUALIZADO) ---
+// =====================================================================
 function changeDistribution() {
   currentDist = document.getElementById('dist-selector').value;
   
@@ -85,6 +88,7 @@ function changeDistribution() {
   const title = document.getElementById('main-title');
   const subtitle = document.getElementById('main-subtitle');
   
+  // 1. Actualizar de forma sincronizada títulos e iconos del Header
   if (currentDist === 'normal') {
     icon.textContent = '𝒩'; title.textContent = 'Simulación Distribución Normal'; subtitle.textContent = 'Transformada Inversa — Método Tabla Z';
   } else if (currentDist === 'exponencial') {
@@ -93,18 +97,35 @@ function changeDistribution() {
     icon.textContent = '𝒫'; title.textContent = 'Simulación Distribución Poisson'; subtitle.textContent = 'Método de Producto Acumulado Uniforme';
   } else if (currentDist === 'uniforme') {
     icon.textContent = '𝒰'; title.textContent = 'Simulación Distribución Uniforme'; subtitle.textContent = 'Transformada Inversa — Escalamiento Lineal';
+  } else if (currentDist === 'tstudent') {
+    icon.textContent = '𝓉'; title.textContent = 'Simulación Distribución t-Student'; subtitle.textContent = 'Método: Cociente Normal / √Chi²';
+  } else if (currentDist === 'chicuadrado') {
+    icon.textContent = '𝒳²'; title.textContent = 'Simulación Chi-Cuadrado'; subtitle.textContent = 'Método: Suma de Normales Estándar al Cuadrado';
   }
 
+  // 2. Control de clases para cambiar secciones visuales (Fórmulas e Inputs)
   document.querySelectorAll('.dist-section').forEach(el => el.classList.remove('active-dist'));
-  document.getElementById(`formulas-${currentDist}`).classList.add('active-dist');
-  document.getElementById(`inputs-${currentDist}`).classList.add('active-dist');
+  
+  // Activa el bloque de fórmulas teóricas correspondiente
+  const formulasEl = document.getElementById(`formulas-${currentDist}`);
+  if (formulasEl) formulasEl.classList.add('active-dist');
+  
+  // Activa el bloque de inputs de parámetros correspondiente
+  const inputsEl = document.getElementById(`inputs-${currentDist}`);
+  if (inputsEl) inputsEl.classList.add('active-dist');
 
-  ['results-card', 'stats-card', 'hist-card', 'clt-card', 'freq-card', 'export-card'].forEach(id => document.getElementById(id).style.display = 'none');
+  // 3. Limpieza de interfaz de resultados anteriores
+  ['results-card', 'stats-card', 'hist-card', 'clt-card', 'freq-card', 'export-card'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+  });
   resultados = [];
 
+  // 4. Actualizar textos dinámicos de los displays informativos
   updateCalculatedValues();
   updateBtnText();
 
+  // 5. Forzar el redibujado inmediato si el usuario está parado en la calculadora P
   if (activeTab === 'calc') switchTab('calc');
 }
 
@@ -125,6 +146,13 @@ function updateCalculatedValues() {
     const a = parseFloat(document.getElementById('uni-a').value) || 0;
     const b = parseFloat(document.getElementById('uni-b').value) || 10;
     display.innerHTML = `Media Teórica ((a+b)/2) = <span style="color:#0ea5e9;font-family:monospace;">${((a + b) / 2).toFixed(4)}</span>`;
+  } else if (currentDist === 'tstudent') {
+    const df = parseInt(document.getElementById('ts-df').value) || 5;
+    const varTeo = df > 2 ? (df / (df - 2)) : Infinity;
+    display.innerHTML = `E[X] = <span style="color:#0ea5e9;font-family:monospace;">0.0000</span> | Var[X] = <span style="color:#f59e0b;font-family:monospace;">${df > 2 ? varTeo.toFixed(4) : '∞ (ν≤2)'}</span>`;
+  } else if (currentDist === 'chicuadrado') {
+    const df = parseInt(document.getElementById('chi-df').value) || 5;
+    display.innerHTML = `E[X] = <span style="color:#0ea5e9;font-family:monospace;">${df.toFixed(4)}</span> | Var[X] = <span style="color:#f59e0b;font-family:monospace;">${(2 * df).toFixed(4)}</span>`;
   } else {
     display.innerHTML = '';
   }
@@ -166,7 +194,6 @@ function copyToClipboard() {
   });
 }
 
-// --- GESTOR DE MODOS (SIMULACIÓN <-> DESCRIPTIVA) ---
 // --- GESTOR DE MODOS (SIMULACIÓN <-> DESCRIPTIVA) ---
 function toggleMainMode() {
   const descWorkspace = document.getElementById('view-analysis'); // Ojo al ID que uses para el análisis

@@ -75,6 +75,35 @@ function ejecutarSimulacion() {
         tbody.innerHTML += `<tr><td class="col-i">${i}</td><td class="col-ri">${ri.toFixed(4)}</td><td class="col-fa">${diff.toFixed(2)}</td><td class="col-xi">${xi.toFixed(4)}</td></tr>`;
       }
     }
+  } else if (currentDist === 'tstudent') {
+    const df = Math.max(1, parseInt(document.getElementById('ts-df').value) || 5);
+    paramsGlobales = { df };
+
+    thead.innerHTML = `<tr><th>i</th><th>r<sub>i</sub> U(0,1)</th><th>Ecuación de Inferencia</th><th>X<sub>i</sub> (t-Calculada)</th></tr>`;
+    
+    for (let i = 1; i <= N; i++) {
+      const ri = Math.random();
+      const xi = generarTStudent(df);
+      resultados.push({ i, ri, xi, extra: ["Z / √(𝒳²/ν)", xi.toFixed(4)] });
+      
+      if (i <= 200) {
+        tbody.innerHTML += `<tr><td class="col-i">${i}</td><td class="col-ri">${ri.toFixed(4)}</td><td class="col-fa" style="font-family:serif;">t = Z / √(𝒳² / ${df})</td><td class="col-xi">${xi.toFixed(4)}</td></tr>`;
+      }
+    }
+  } else if (currentDist === 'chicuadrado') {
+    const df = Math.max(1, parseInt(document.getElementById('chi-df').value) || 5);
+    paramsGlobales = { df };
+
+    thead.innerHTML = `<tr><th>i</th><th>Ecuación Teórica de Generación</th><th>X<sub>i</sub> (𝒳² Calculada)</th></tr>`;
+    
+    for (let i = 1; i <= N; i++) {
+      const xi = generarChiCuadrado(df);
+      resultados.push({ i, ri: 0, xi, extra: ["Σ(Z²)", xi.toFixed(4)] });
+      
+      if (i <= 200) {
+        tbody.innerHTML += `<tr><td class="col-i">${i}</td><td class="col-fa" style="font-family:serif;">𝒳² = Σ Zᵢ² (i=1 hasta ${df})</td><td class="col-xi">${xi.toFixed(4)}</td></tr>`;
+      }
+    }
   }
 
   if (N > 200) {
@@ -103,6 +132,11 @@ function calcularEstadisticasYGrafico(N) {
     tVar = (paramsGlobales.diff ** 2) / 12;
     tStd = Math.sqrt(tVar);
     tCv = tMean !== 0 ? (tStd / Math.abs(tMean)) : 0;
+  } else if (currentDist === 'chicuadrado') {
+    tMean = paramsGlobales.df; 
+    tVar = 2 * paramsGlobales.df; 
+    tStd = Math.sqrt(tVar); 
+    tCv = tStd / tMean;
   }
 
   const rows = [
@@ -256,6 +290,9 @@ function reDrawChart() {
   } else if (currentDist === 'uniforme') {
     xMin = paramsGlobales.a;
     xMax = paramsGlobales.b;
+  } else if (currentDist === 'chicuadrado') {
+    xMin = 0; 
+    xMax = paramsGlobales.df + 4 * Math.sqrt(2 * paramsGlobales.df);
   }
 
   const isDiscrete = currentDist === 'poisson';
@@ -372,7 +409,13 @@ function generarTablaFrecuencias(xs) {
       xMin = 0; xMax = Math.max(xMax, 4 / paramsGlobales.lambda);
     } else if (currentDist === 'uniforme') {
       xMin = paramsGlobales.a; xMax = paramsGlobales.b;
+    } else if (currentDist === 'tstudent') {
+      xMin = -4; xMax = 4; // Soporte centrado estándar para visualización t-Student
+    } else if (currentDist === 'chicuadrado') {
+      xMin = 0; 
+      xMax = paramsGlobales.df + 4 * Math.sqrt(2 * paramsGlobales.df);
     }
+
     const bw = (xMax - xMin) / bins;
     for (let i = 0; i < bins; i++) {
       const lower = xMin + i * bw, upper = xMin + (i + 1) * bw;

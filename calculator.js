@@ -25,27 +25,65 @@ function cambiarOpcionCalculadora(opcion) {
 
 function ejecutarCalculadoraPorOpcion() {
   if (currentDist !== 'normal') return;
-  const mu = parseFloat(document.getElementById('calc-mu').value) || 10;
-  const sigma = Math.max(0.001, parseFloat(document.getElementById('calc-sigma').value) || 1);
-  const a = parseFloat(document.getElementById('calc-a').value) || 0;
-  const b = parseFloat(document.getElementById('calc-b').value) || 0;
 
+  // 1. CAPTURA DE CAMPOS EN RAW (TEXTO EN BRUTO)
+  const muRaw = document.getElementById('calc-mu').value;
+  const sigmaRaw = document.getElementById('calc-sigma').value;
+  const aRaw = document.getElementById('calc-a').value;
+  const bRaw = document.getElementById('calc-b').value;
+  const nRaw = document.getElementById('calc-sample-n') ? document.getElementById('calc-sample-n').value : "25";
+
+  // 2. VALIDACIÓN CRÍTICA: Si el usuario está borrando y el campo queda vacío, frenamos el crasheo
+  if (muRaw === "" || sigmaRaw === "" || aRaw === "" || bRaw === "") return;
+  
+  const typeEl = document.getElementById('calc-var-type');
+  if (typeEl && typeEl.value === 'media' && nRaw === "") return;
+
+  // 3. PARSEO SEGURO UNA VEZ VERIFICADO QUE HAY DATOS
+  const mu = parseFloat(muRaw);
+  const sigmaIndividual = parseFloat(sigmaRaw);
+  const a = parseFloat(aRaw);
+  const b = parseFloat(bRaw);
+
+  // Si los datos parciales no son números válidos aún, evitamos operar
+  if (isNaN(mu) || isNaN(sigmaIndividual) || isNaN(a) || isNaN(b)) return;
+  if (sigmaIndividual <= 0) return; // La desviación no puede ser cero ni negativa
+
+  // 4. LÓGICA DEL TEOREMA DEL LÍMITE CENTRAL (TLC)
+  let sigma = sigmaIndividual;
+  let varLabel = "X";
+  
+  if (typeEl && typeEl.value === 'media') {
+    const n = parseInt(nRaw) || 25;
+    if (isNaN(n) || n <= 0) return; // Evita división por cero o raíces imaginarias
+    sigma = sigmaIndividual / Math.sqrt(n);
+    varLabel = "X̄";
+  }
+
+  // 5. CÁLCULO DE PROBABILIDADES
   const cdfA = normalCDF(a, mu, sigma);
   const cdfB = normalCDF(b, mu, sigma);
 
   let resultadoFinal = 0, labelTexto = "", tituloGrafico = "";
   switch (calcOpcionActiva) {
-    case 1: resultadoFinal = cdfA; labelTexto = `P(X ≤ ${a}) [Acumulada Izquierda] =`; tituloGrafico = `Área Sombreada Izquierda hasta a = ${a}`; break;
-    case 2: resultadoFinal = 1 - cdfA; labelTexto = `P(X > ${a}) [Complemento Derecho] =`; tituloGrafico = `Área Sombreada Derecha desde a = ${a}`; break;
-    case 3: resultadoFinal = b >= a ? (cdfB - cdfA) : 0; labelTexto = b >= a ? `P(${a} ≤ X ≤ ${b}) =` : "Error: Límite 'a' debe ser menor o igual a 'b'"; tituloGrafico = b >= a ? `Área Sombreada Central entre ${a} y ${b}` : "Error de Intervalo"; break;
-    case 4: const pEntre = b >= a ? (cdfB - cdfA) : 0; resultadoFinal = 1 - pEntre; labelTexto = b >= a ? `P(X < ${a} o X > ${b}) =` : "Error: Límite 'a' debe ser menor o igual a 'b'"; tituloGrafico = b >= a ? `Áreas Extremas Fuera de [${a}, ${b}]` : "Error de Intervalo"; break;
+    case 1: resultadoFinal = cdfA; labelTexto = `P(${varLabel} ≤ ${a}) =`; tituloGrafico = `Área Izquierda hasta ${a}`; break;
+    case 2: resultadoFinal = 1 - cdfA; labelTexto = `P(${varLabel} > ${a}) =`; tituloGrafico = `Área Derecha desde ${a}`; break;
+    case 3: resultadoFinal = b >= a ? (cdfB - cdfA) : 0; labelTexto = b >= a ? `P(${a} ≤ ${varLabel} ≤ ${b}) =` : "Error: 'a' debe ser ≤ 'b'"; tituloGrafico = b >= a ? `Área Central [${a}, ${b}]` : "Error"; break;
+    case 4: const pEntre = b >= a ? (cdfB - cdfA) : 0; resultadoFinal = 1 - pEntre; labelTexto = b >= a ? `P(${varLabel} < ${a} o ${varLabel} > ${b}) =` : "Error: 'a' debe ser ≤ 'b'"; tituloGrafico = b >= a ? `Áreas Fuera de [${a}, ${b}]` : "Error"; break;
   }
 
-  document.getElementById('res-calc-label').textContent = labelTexto;
-  document.getElementById('res-calc-value').textContent = (typeof resultadoFinal === 'number') ? resultadoFinal.toFixed(6) : "-";
-  document.getElementById('pdf-graph-title').textContent = `Campana de Densidad (PDF) — ${tituloGrafico}`;
+  // 6. RENDERIZADO SEGURO EN INTERFAZ
+  const labelEl = document.getElementById('res-calc-label');
+  const valEl = document.getElementById('res-calc-value');
+  const titleEl = document.getElementById('pdf-graph-title');
 
-  drawCalcPDF(mu, sigma, a, b); drawCalcCDF(mu, sigma, a, b);
+  if (labelEl) labelEl.textContent = labelTexto;
+  if (valEl) valEl.textContent = (typeof resultadoFinal === 'number') ? resultadoFinal.toFixed(6) : "-";
+  if (titleEl) titleEl.textContent = `Campana de Densidad (${varLabel}) — ${tituloGrafico}`;
+
+  // 7. DIBUJO SEGURO EN CANVAS
+  drawCalcPDF(mu, sigma, a, b); 
+  drawCalcCDF(mu, sigma, a, b);
 }
 
 function drawCalcPDF(mu, sigma, a, b) {
@@ -495,14 +533,294 @@ function drawCalcUniCDF(alpha, beta, a, b) {
   ctx.setLineDash([]); ctx.strokeStyle = isDark ? '#1e2d40' : '#cbd5e1'; ctx.beginPath(); ctx.moveTo(0, ty(0)); ctx.lineTo(W, ty(0)); ctx.stroke();
 }
 
-// INICIALIZACIÓN
-/*setTimeout(() => { 
-  if (typeof cambiarOpcionCalculadora === 'function') cambiarOpcionCalculadora(1); 
-  if (typeof cambiarOpcionCalculadoraExp === 'function') cambiarOpcionCalculadoraExp(1); 
-  if (typeof cambiarOpcionCalculadoraPoi === 'function') cambiarOpcionCalculadoraPoi(1); 
-  if (typeof cambiarOpcionCalculadoraUni === 'function') cambiarOpcionCalculadoraUni(1);
-  if (typeof updateCalculatedValues === 'function') updateCalculatedValues();
-}, 100);*/
+// --- CALCULADORA t-STUDENT (NUEVA Y EXCLUSIVA) ---
+let calcTSOpcionActiva = 1;
+
+function cambiarOpcionCalculadoraTS(opcion) {
+  calcTSOpcionActiva = opcion;
+  for (let i = 1; i <= 4; i++) {
+    const btn = document.getElementById(`btn-ts-opt-${i}`);
+    if (btn) {
+      btn.style.background = i === opcion ? 'rgba(0, 212, 170, 0.15)' : 'transparent';
+      btn.style.borderColor = i === opcion ? '#00d4aa' : '';
+    }
+  }
+  ejecutarCalculadoraTSPorOpcion();
+}
+
+function ejecutarCalculadoraTSPorOpcion() {
+  if (currentDist !== 'tstudent') return;
+  const df = Math.max(1, parseInt(document.getElementById('calc-ts-df').value) || 5);
+  const a = parseFloat(document.getElementById('calc-ts-a').value) || 0;
+  const b = parseFloat(document.getElementById('calc-ts-b').value) || 0;
+
+  const cdfA = tStudentCDF(a, df);
+  const cdfB = tStudentCDF(b, df);
+
+  let resultadoFinal = 0, labelTexto = "", tituloGrafico = "";
+  switch (calcTSOpcionActiva) {
+    case 1: resultadoFinal = cdfA; labelTexto = `P(T ≤ ${a}) =`; tituloGrafico = `Área Sombreada Izquierda hasta t = ${a}`; break;
+    case 2: resultadoFinal = 1 - cdfA; labelTexto = `P(T > ${a}) =`; tituloGrafico = `Área Sombreada Derecha desde t = ${a}`; break;
+    case 3: resultadoFinal = b >= a ? (cdfB - cdfA) : 0; labelTexto = b >= a ? `P(${a} ≤ T ≤ ${b}) =` : "Error: Límite 'a' debe ser ≤ 'b'"; tituloGrafico = b >= a ? `Área Central entre ${a} y ${b}` : "Error"; break;
+    case 4: resultadoFinal = 1 - (b >= a ? (cdfB - cdfA) : 0); labelTexto = b >= a ? `P(T < ${a} o T > ${b}) =` : "Error"; tituloGrafico = b >= a ? `Áreas de Colas Fuera de [${a}, ${b}]` : "Error"; break;
+  }
+
+  document.getElementById('res-ts-calc-label').textContent = labelTexto;
+  document.getElementById('res-ts-calc-value').textContent = resultadoFinal.toFixed(6);
+  document.getElementById('pdf-ts-graph-title').textContent = `Curva de Densidad t-Student (ν=${df}) — ${tituloGrafico}`;
+
+  drawCalcTStudentPDF(df, a, b);
+  drawCalcTStudentCDF(df, a, b);
+}
+
+function drawCalcTStudentPDF(df, a, b) {
+  const canvas = document.getElementById('calc-ts-pdf-canvas');
+  if (!canvas) return;
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr; canvas.height = 150 * dpr;
+  const ctx = canvas.getContext('2d'); ctx.scale(dpr, dpr);
+  const W = rect.width, H = 150;
+  const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+
+  const xMin = -4, xMax = 4;
+  const tx = x => ((x - xMin) / (xMax - xMin)) * (W - 40) + 20;
+  const ty = y => H - (y / (tStudentPDF(0, df) * 1.2)) * (H - 30) - 20;
+
+  ctx.fillStyle = 'rgba(167, 139, 250, 0.25)'; // Color púrpura distintivo para inferencia
+  const drawShaded = (start, end) => {
+    ctx.beginPath(); ctx.moveTo(tx(start), ty(0));
+    const step = (end - start) / 100;
+    for (let x = start; x <= end; x += step) ctx.lineTo(tx(x), ty(tStudentPDF(x, df)));
+    ctx.lineTo(tx(end), ty(0)); ctx.closePath(); ctx.fill();
+  };
+
+  if (calcTSOpcionActiva === 1) drawShaded(xMin, a);
+  else if (calcTSOpcionActiva === 2) drawShaded(a, xMax);
+  else if (calcTSOpcionActiva === 3 && b > a) drawShaded(a, b);
+  else if (calcTSOpcionActiva === 4) { drawShaded(xMin, a); if (b > a) drawShaded(b, xMax); }
+
+  ctx.beginPath();
+  for (let i = 0; i <= 200; i++) {
+    const x = xMin + (i / 200) * (xMax - xMin);
+    i === 0 ? ctx.moveTo(tx(x), ty(tStudentPDF(x, df))) : ctx.lineTo(tx(x), ty(tStudentPDF(x, df)));
+  }
+  ctx.strokeStyle = '#a78bfa'; ctx.lineWidth = 2; ctx.stroke();
+
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = '#ef4444'; ctx.beginPath(); ctx.moveTo(tx(a), ty(0)); ctx.lineTo(tx(a), ty(tStudentPDF(a, df))); ctx.stroke();
+  if ((calcTSOpcionActiva === 3 || calcTSOpcionActiva === 4) && b >= a) {
+    ctx.strokeStyle = '#ea580c'; ctx.beginPath(); ctx.moveTo(tx(b), ty(0)); ctx.lineTo(tx(b), ty(tStudentPDF(b, df))); ctx.stroke();
+  }
+  ctx.strokeStyle = isDark ? '#1e2d40' : '#cbd5e1'; ctx.beginPath(); ctx.moveTo(0, ty(0)); ctx.lineTo(W, ty(0)); ctx.stroke();
+}
+
+function drawCalcTStudentCDF(df, a, b) {
+  const canvas = document.getElementById('calc-ts-cdf-canvas');
+  if (!canvas) return;
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr; canvas.height = 150 * dpr;
+  const ctx = canvas.getContext('2d'); ctx.scale(dpr, dpr);
+  const W = rect.width, H = 150;
+  const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+
+  const xMin = -4, xMax = 4;
+  const tx = x => ((x - xMin) / (xMax - xMin)) * (W - 40) + 20;
+  const ty = y => H - y * (H - 30) - 20;
+
+  ctx.beginPath();
+  for (let i = 0; i <= 200; i++) {
+    const x = xMin + (i / 200) * (xMax - xMin);
+    i === 0 ? ctx.moveTo(tx(x), ty(tStudentCDF(x, df))) : ctx.lineTo(tx(x), ty(tStudentCDF(x, df)));
+  }
+  ctx.strokeStyle = '#0ea5e9'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.strokeStyle = isDark ? '#1e2d40' : '#cbd5e1'; ctx.beginPath(); ctx.moveTo(0, ty(0)); ctx.lineTo(W, ty(0)); ctx.stroke();
+}
+
+// --- CALCULADORA CHI-CUADRADO (NUEVA) ---
+let calcChiOpcionActiva = 1;
+
+function cambiarOpcionCalculadoraChi(opcion) {
+  calcChiOpcionActiva = opcion;
+  for (let i = 1; i <= 4; i++) {
+    const btn = document.getElementById(`btn-chi-opt-${i}`);
+    if (btn) {
+      btn.style.background = i === opcion ? 'rgba(14, 165, 233, 0.15)' : 'transparent';
+      btn.style.borderColor = i === opcion ? '#0ea5e9' : '';
+    }
+  }
+  ejecutarCalculadoraChiPorOpcion();
+}
+
+function ejecutarCalculadoraChiPorOpcion() {
+  if (currentDist !== 'chicuadrado') return;
+  const df = Math.max(1, parseInt(document.getElementById('calc-chi-df').value) || 5);
+  const a = Math.max(0, parseFloat(document.getElementById('calc-chi-a').value) || 0);
+  const b = Math.max(0, parseFloat(document.getElementById('calc-chi-b').value) || 0);
+
+  const cdfA = chiCuadradoCDF(a, df);
+  const cdfB = chiCuadradoCDF(b, df);
+
+  let resultadoFinal = 0, labelTexto = "", tituloGrafico = "";
+  switch (calcChiOpcionActiva) {
+    case 1: resultadoFinal = cdfA; labelTexto = `P(𝒳² ≤ ${a}) =`; tituloGrafico = `Área Sombreada Izquierda hasta a = ${a}`; break;
+    case 2: resultadoFinal = 1 - cdfA; labelTexto = `P(𝒳² > ${a}) =`; tituloGrafico = `Área Sombreada Derecha desde a = ${a}`; break;
+    case 3: resultadoFinal = b >= a ? (cdfB - cdfA) : 0; labelTexto = b >= a ? `P(${a} ≤ 𝒳² ≤ ${b}) =` : "Error: Límite 'a' debe ser ≤ 'b'"; tituloGrafico = b >= a ? `Área Central entre ${a} y ${b}` : "Error"; break;
+    case 4: resultadoFinal = 1 - (b >= a ? (cdfB - cdfA) : 0); labelTexto = b >= a ? `P(𝒳² < ${a} o 𝒳² > ${b}) =` : "Error"; tituloGrafico = b >= a ? `Áreas Fuera de [${a}, ${b}]` : "Error"; break;
+  }
+
+  document.getElementById('res-chi-calc-label').textContent = labelTexto;
+  document.getElementById('res-chi-calc-value').textContent = resultadoFinal.toFixed(6);
+  document.getElementById('pdf-chi-graph-title').textContent = `Curva de Densidad Chi-Cuadrado (ν=${df}) — ${tituloGrafico}`;
+
+  drawCalcChiPDF(df, a, b);
+  drawCalcChiCDF(df, a, b);
+}
+
+function drawCalcChiPDF(df, a, b) {
+  const canvas = document.getElementById('calc-chi-pdf-canvas');
+  if (!canvas) return;
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr; canvas.height = 150 * dpr;
+  const ctx = canvas.getContext('2d'); ctx.scale(dpr, dpr);
+  const W = rect.width, H = 150;
+  const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+
+  const xMin = 0, xMax = df + 4 * Math.sqrt(2 * df);
+  const tx = x => ((x - xMin) / (xMax - xMin)) * (W - 40) + 20;
+  
+  let maxPdf = 0;
+  for(let x = 0; x <= xMax; x += 0.1) {
+     let y = chiCuadradoPDF(x, df);
+     if(y > maxPdf) maxPdf = y;
+  }
+  if(maxPdf === 0 || maxPdf > 10) maxPdf = 0.5;
+
+  const ty = y => H - (y / (maxPdf * 1.2)) * (H - 30) - 20;
+
+  ctx.fillStyle = 'rgba(14, 165, 233, 0.25)'; 
+  const drawShaded = (start, end) => {
+    ctx.beginPath(); ctx.moveTo(tx(start), ty(0));
+    const step = (end - start) / 100;
+    for (let x = start; x <= end; x += step) {
+        let val = x===0 && df===1 ? 0 : chiCuadradoPDF(x, df);
+        ctx.lineTo(tx(x), ty(val));
+    }
+    ctx.lineTo(tx(end), ty(0)); ctx.closePath(); ctx.fill();
+  };
+
+  if (calcChiOpcionActiva === 1) drawShaded(xMin, a);
+  else if (calcChiOpcionActiva === 2) drawShaded(a, xMax);
+  else if (calcChiOpcionActiva === 3 && b > a) drawShaded(a, b);
+  else if (calcChiOpcionActiva === 4) { drawShaded(xMin, a); if (b > a) drawShaded(b, xMax); }
+
+  ctx.beginPath();
+  for (let i = 0.1; i <= 200; i++) {
+    const x = xMin + (i / 200) * (xMax - xMin);
+    let val = x===0 && df===1 ? 0 : chiCuadradoPDF(x, df);
+    i === 0.1 ? ctx.moveTo(tx(x), ty(val)) : ctx.lineTo(tx(x), ty(val));
+  }
+  ctx.strokeStyle = '#0ea5e9'; ctx.lineWidth = 2; ctx.stroke();
+
+  ctx.lineWidth = 1;
+  let valA = a===0 && df===1 ? 0 : chiCuadradoPDF(a, df);
+  ctx.strokeStyle = '#ef4444'; ctx.beginPath(); ctx.moveTo(tx(a), ty(0)); ctx.lineTo(tx(a), ty(valA)); ctx.stroke();
+  if ((calcChiOpcionActiva === 3 || calcChiOpcionActiva === 4) && b >= a) {
+    let valB = b===0 && df===1 ? 0 : chiCuadradoPDF(b, df);
+    ctx.strokeStyle = '#ea580c'; ctx.beginPath(); ctx.moveTo(tx(b), ty(0)); ctx.lineTo(tx(b), ty(valB)); ctx.stroke();
+  }
+  ctx.strokeStyle = isDark ? '#1e2d40' : '#cbd5e1'; ctx.beginPath(); ctx.moveTo(0, ty(0)); ctx.lineTo(W, ty(0)); ctx.stroke();
+}
+
+function drawCalcChiCDF(df, a, b) {
+  const canvas = document.getElementById('calc-chi-cdf-canvas');
+  if (!canvas) return;
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr; canvas.height = 150 * dpr;
+  const ctx = canvas.getContext('2d'); ctx.scale(dpr, dpr);
+  const W = rect.width, H = 150;
+  const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+
+  const xMin = 0, xMax = df + 4 * Math.sqrt(2 * df);
+  const tx = x => ((x - xMin) / (xMax - xMin)) * (W - 40) + 20;
+  const ty = y => H - y * (H - 30) - 20;
+
+  ctx.beginPath();
+  for (let i = 0; i <= 200; i++) {
+    const x = xMin + (i / 200) * (xMax - xMin);
+    i === 0 ? ctx.moveTo(tx(x), ty(chiCuadradoCDF(x, df))) : ctx.lineTo(tx(x), ty(chiCuadradoCDF(x, df)));
+  }
+  ctx.strokeStyle = '#0ea5e9'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.strokeStyle = isDark ? '#1e2d40' : '#cbd5e1'; ctx.beginPath(); ctx.moveTo(0, ty(0)); ctx.lineTo(W, ty(0)); ctx.stroke();
+}
+
+function toggleCalcSampleInput() {
+  const el = document.getElementById('calc-var-type');
+  if (el) {
+    document.getElementById('calc-sample-n-container').style.display = el.value === 'media' ? 'block' : 'none';
+    ejecutarCalculadoraPorOpcion();
+  }
+}
+
+// =====================================================================
+// --- VÍNCULO GLOBAL CON EL CONTROLADOR DE PESTAÑAS (SWITCHTAB) ---
+// =====================================================================
+const originalSwitchTab = switchTab;
+switchTab = function(tab) {
+  // Ejecutamos primero la función original para cambiar los contenedores base
+  originalSwitchTab(tab);
+  
+  // Si entramos a la pestaña de la calculadora, gestionamos los contenidos específicos
+  if (tab === 'calc') {
+    const warningEl = document.getElementById('calc-warning');
+    if (warningEl) warningEl.style.display = 'none';
+
+    // 1. Ocultamos TODOS los contenidos de las calculadoras analíticas para limpiar la pantalla
+    const contenidosCalculadoras = [
+      'calc-normal-content',
+      'calc-exponencial-content',
+      'calc-poisson-content',
+      'calc-uniforme-content',
+      'calc-tstudent-content',
+      'calc-chicuadrado-content'
+    ];
+    
+    contenidosCalculadoras.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    });
+
+    // 2. Activamos e inicializamos exclusivamente la calculadora de la distribución seleccionada
+    if (currentDist === 'normal') {
+      document.getElementById('calc-normal-content').style.display = 'block';
+      if (typeof ejecutarCalculadoraPorOpcion === 'function') ejecutarCalculadoraPorOpcion();
+    } else if (currentDist === 'exponencial') {
+      document.getElementById('calc-exponencial-content').style.display = 'block';
+      if (typeof ejecutarCalculadoraExpPorOpcion === 'function') ejecutarCalculadoraExpPorOpcion();
+    } else if (currentDist === 'poisson') {
+      const poiContent = document.getElementById('calc-poisson-content');
+      if (poiContent) poiContent.style.display = 'block';
+      if (typeof ejecutarCalculadoraPoiPorOpcion === 'function') ejecutarCalculadoraPoiPorOpcion();
+    } else if (currentDist === 'uniforme') {
+      const uniContent = document.getElementById('calc-uniforme-content');
+      if (uniContent) uniContent.style.display = 'block';
+      if (typeof ejecutarCalculadoraUniPorOpcion === 'function') ejecutarCalculadoraUniPorOpcion();
+    } else if (currentDist === 'tstudent') {
+      const tsContent = document.getElementById('calc-tstudent-content');
+      if (tsContent) tsContent.style.display = 'block';
+      if (typeof ejecutarCalculadoraTSPorOpcion === 'function') ejecutarCalculadoraTSPorOpcion();
+    } else if (currentDist === 'chicuadrado') {
+      const chiContent = document.getElementById('calc-chicuadrado-content');
+      if (chiContent) chiContent.style.display = 'block';
+      if (typeof cambiarOpcionCalculadoraChi === 'function') cambiarOpcionCalculadoraChi(1); // Enciende e inicializa la Chi-Cuadrado
+    } else {
+      if (warningEl) warningEl.style.display = 'block';
+    }
+  }
+};
 
 document.addEventListener('DOMContentLoaded', () => {
   // Inicializar modo de distribución por defecto

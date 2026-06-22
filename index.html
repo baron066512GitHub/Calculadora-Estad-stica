@@ -23,6 +23,8 @@
         <option value="exponencial">Distribución Exponencial</option>
         <option value="poisson">Distribución Poisson</option>
         <option value="uniforme">Distribución Uniforme</option>
+        <option value="tstudent">Distribución t-Student</option>
+        <option value="chicuadrado">Distribución Chi-Cuadrado</option>
       </select>
       <button class="btn-analysis" id="btn-toggle-analysis" onclick="toggleAnalysisMode()" title="Análisis de Datos Propios">📊 Analizar Datos</button>
       <button class="btn-theme" onclick="toggleTheme()" title="Cambiar tema">🌓</button>
@@ -38,7 +40,7 @@
   </div>
 
   <div id="view-formulas">
-
+    <!-- ================= VISTA FORMULAS ================= -->
     <div id="formulas-normal" class="dist-section active-dist">
       <div class="card">
         <div class="card-title">1. Distribución Normal <span class="badge badge-green">Modelo</span></div>
@@ -348,7 +350,6 @@
       </div>
     </div>
 
-    <!-- ================= VISTA FORMULAS: UNIFORME ================= -->
     <div id="formulas-uniforme" class="dist-section">
       <div class="card">
         <div class="card-title">1. Distribución Uniforme Continua <span class="badge badge-green">Modelo</span></div>
@@ -423,6 +424,61 @@
         </div>
       </div>
     </div>
+
+    <div id="formulas-tstudent" class="dist-section">
+      <div class="card">
+        <div class="card-title">1. Modelo Teórico t-Student <span class="badge badge-purple">Inferencia</span></div>
+        <div class="formula-block purple">
+          <div class="formula-name">Notación de Muestreo</div>
+          <div class="formula-main"><b>T ~ t(ν)</b></div>
+          <div class="formula-desc">Modela el comportamiento estadístico de la media muestral cuando el tamaño de la muestra es pequeño (n < 30) y la desviación estándar de la población (σ) permanece desconocida.</div>
+        </div>
+
+        <div class="formula-block purple">
+          <div class="formula-name">Función de densidad de probabilidad (PDF)</div>
+          <div class="formula-main"><b>f(t)</b> = [ Γ((ν+1)/2) / (√(νπ) · Γ(ν/2)) ] · (1 + t²/ν)<sup>−(ν+1)/2</sup></div>
+          <div class="formula-desc">Posee una forma acampanada simétrica centrada en cero, muy similar a la Normal Estándar, pero con colas significativamente más pesadas y anchas (mayor probabilidad en los extremos).</div>
+          <div class="formula-vars">
+            <div class="var-row"><span class="var-sym">ν</span><span class="var-def">Grados de Libertad (n - 1). Parámetro fundamental de forma.</span></div>
+            <div class="var-row"><span class="var-sym">Γ(n)</span><span class="var-def">Función Gamma de Euler = ∫₀ⁿ xⁿ⁻¹e⁻ˣdx. Generalización del factorial.</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">2. Teorema de Composición Estocástica <span class="badge badge-blue">Deducción</span></div>
+        <div class="formula-block blue">
+          <div class="formula-name">Relación Estructural Fundamental (Pregunta de Parcial)</div>
+          <div class="formula-main"><b>T = Z / √(𝒳² / ν)</b></div>
+          <div class="formula-desc">Una variable t-Student se define matemáticamente como el cociente de una variable Normal Estándar (Z) y la raíz cuadrada de una variable Chi-Cuadrada (𝒳²) dividida entre sus grados de libertad (ν). Este es el algoritmo exacto implementado en el motor de simulación.</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="formulas-chicuadrado" class="dist-section">
+      <div class="card">
+        <div class="card-title">1. Modelo Teórico Chi-Cuadrado <span class="badge badge-blue">Inferencia</span></div>
+        <div class="formula-block blue">
+          <div class="formula-name">Notación</div>
+          <div class="formula-main"><b>𝒳² ~ 𝒳²(ν)</b></div>
+          <div class="formula-desc">Modela la distribución de la suma de ν variables aleatorias normales estándar independientes elevadas al cuadrado. Es vital para pruebas de bondad de ajuste e independencia en tablas de contingencia.</div>
+        </div>
+        <div class="formula-block blue">
+          <div class="formula-name">Función de densidad de probabilidad (PDF)</div>
+          <div class="formula-main"><b>f(x)</b> = [ x<sup>(ν/2)−1</sup> · e<sup>−x/2</sup> ] / [ 2<sup>ν/2</sup> · Γ(ν/2) ]</div>
+          <div class="formula-desc">Asimétrica positiva, definida exclusivamente para x > 0. A medida que los grados de libertad ν aumentan, la curva se desplaza a la derecha y se hace más simétrica.</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">2. Teorema de Simulación <span class="badge badge-amber">Deducción</span></div>
+        <div class="formula-block amber">
+          <div class="formula-name">Relación Estructural Fundamental</div>
+          <div class="formula-main"><b>𝒳² = Σ Z<sub>i</sub>²</b> &nbsp;&nbsp;(desde i=1 hasta ν)</div>
+          <div class="formula-desc">Se generan ν valores independientes de la distribución Normal Estándar Z ~ N(0,1), se eleva cada uno al cuadrado y se suman. Este es el método exacto usado en este simulador para garantizar rigurosidad.</div>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <div id="view-sim" style="display:none;">
@@ -443,10 +499,17 @@
         <div><label>Media Lambda (λ)</label><input type="number" id="poi-lambda" value="4" step="0.5" min="0.01"></div>
       </div>
 
-      <!-- Inputs para Uniforme -->
       <div id="inputs-uniforme" class="grid2 dist-section">
         <div><label>Límite Inferior (a)</label><input type="number" id="uni-a" value="0" step="1" oninput="updateCalculatedValues()"></div>
         <div><label>Límite Superior (b)</label><input type="number" id="uni-b" value="10" step="1" oninput="updateCalculatedValues()"></div>
+      </div>
+
+      <div id="inputs-tstudent" class="dist-section">
+        <div><label>Grados de Libertad (ν)</label><input type="number" id="ts-df" value="5" min="1" step="1"></div>
+      </div>
+
+      <div id="inputs-chicuadrado" class="dist-section">
+        <div><label>Grados de Libertad (ν)</label><input type="number" id="chi-df" value="5" min="1" step="1" oninput="updateCalculatedValues()"></div>
       </div>
 
       <div style="margin-top:10px;">
@@ -530,12 +593,26 @@
       <p style="font-size:13px; color:var(--text-desc);">⚠️ Esta calculadora analítica abarca todas las distribuciones. Selecciona una en el menú superior para activarla.</p>
     </div>
 
-    <div id="calc-normal-content" style="display:none;">
+    <div id="calc-normal-content" style="display:none;">   
       <div class="card">
         <div class="card-title">Parámetros de la Distribución Normal</div>
-        <div class="grid2">
+        <div class="grid2" style="margin-bottom: 12px;">
           <div><label>Media (μ)</label><input type="number" id="calc-mu" value="10" step="1" oninput="ejecutarCalculadoraPorOpcion()"></div>
           <div><label>Desviación Estándar (σ)</label><input type="number" id="calc-sigma" value="1" step="0.1" min="0.001" oninput="ejecutarCalculadoraPorOpcion()"></div>
+        </div>
+        
+        <div class="grid2" style="background: var(--formula-bg); padding: 12px; border-radius: 8px; align-items: center;">
+          <div>
+            <label>Variable de Análisis</label>
+            <select id="calc-var-type" onchange="toggleCalcSampleInput()">
+              <option value="individual">X (Valor Individual)</option>
+              <option value="media">X̄ (Media Muestral - TLC)</option>
+            </select>
+          </div>
+          <div id="calc-sample-n-container" style="display: none;">
+            <label>Tamaño de Muestra (n)</label>
+            <input type="number" id="calc-sample-n" value="25" min="1" step="1" oninput="ejecutarCalculadoraPorOpcion()">
+          </div>
         </div>
       </div>
 
@@ -553,15 +630,15 @@
         </div>
 
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; margin-top: 12px;">
-          <button class="btn-outline" id="btn-opt-1" onclick="cambiarOpcionCalculadora(1)" style="margin:0;">Calcular P(X ≤ a)</button>
-          <button class="btn-outline" id="btn-opt-2" onclick="cambiarOpcionCalculadora(2)" style="margin:0;">Calcular P(X > a)</button>
-          <button class="btn-outline" id="btn-opt-3" onclick="cambiarOpcionCalculadora(3)" style="margin:0;">Calcular P(a ≤ X ≤ b)</button>
-          <button class="btn-outline" id="btn-opt-4" onclick="cambiarOpcionCalculadora(4)" style="margin:0;">Calcular P(X < a o X > b)</button>
+          <button class="btn-outline" id="btn-opt-1" onclick="cambiarOpcionCalculadora(1)" style="margin:0;">Calcular P(Var ≤ a)</button>
+          <button class="btn-outline" id="btn-opt-2" onclick="cambiarOpcionCalculadora(2)" style="margin:0;">Calcular P(Var > a)</button>
+          <button class="btn-outline" id="btn-opt-3" onclick="cambiarOpcionCalculadora(3)" style="margin:0;">Calcular P(a ≤ Var ≤ b)</button>
+          <button class="btn-outline" id="btn-opt-4" onclick="cambiarOpcionCalculadora(4)" style="margin:0;">Calcular P(Var < a o Var > b)</button>
         </div>
       </div>
 
       <div class="card" style="border-left: 4px solid #00d4aa;">
-        <div class="card-title" id="res-calc-title">Resultado Obtenido (Normal)</div>
+        <div class="card-title" id="res-calc-title">Resultado Obtenido (Normal / TLC)</div>
         <div style="display: flex; justify-content: space-between; align-items: center;">
           <div id="res-calc-label" style="font-size: 14px; font-weight: 600; color: var(--text-desc);">P(X ≤ a) =</div>
           <div id="res-calc-value" style="font-family: monospace; color: #00d4aa; font-weight: 700; font-size: 18px;">-</div>
@@ -724,6 +801,104 @@
         <div class="card">
           <div class="card-title">Distribución Acumulada Lineal (CDF)</div>
           <canvas id="calc-uni-cdf-canvas" style="height:150px;"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div id="calc-tstudent-content" style="display:none;">
+      <div class="card">
+        <div class="card-title">Parámetros de la Distribución t-Student</div>
+        <div class="grid2">
+          <div><label>Grados de Libertad (ν)</label><input type="number" id="calc-ts-df" value="5" min="1" step="1" oninput="ejecutarCalculadoraTSPorOpcion()"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Selecciona la Probabilidad Inferencial a Calcular</div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <input type="number" id="calc-ts-a" value="-1.5" step="0.1" style="width:100px;" oninput="ejecutarCalculadoraTSPorOpcion()">
+            <label style="margin:0;">Valor crítico límite (a)</label>
+          </div>
+          <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 8px;">
+            <input type="number" id="calc-ts-b" value="1.5" step="0.1" style="width:100px;" oninput="ejecutarCalculadoraTSPorOpcion()">
+            <label style="margin:0;">Valor crítico límite (b)</label>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; margin-top: 12px;">
+          <button class="btn-outline" id="btn-ts-opt-1" onclick="cambiarOpcionCalculadoraTS(1)" style="margin:0;">Calcular P(T ≤ a)</button>
+          <button class="btn-outline" id="btn-ts-opt-2" onclick="cambiarOpcionCalculadoraTS(2)" style="margin:0;">Calcular P(T > a)</button>
+          <button class="btn-outline" id="btn-ts-opt-3" onclick="cambiarOpcionCalculadoraTS(3)" style="margin:0;">Calcular P(a ≤ T ≤ b)</button>
+          <button class="btn-outline" id="btn-ts-opt-4" onclick="cambiarOpcionCalculadoraTS(4)" style="margin:0;">Calcular P(T < a o T > b)</button>
+        </div>
+      </div>
+
+      <div class="card" style="border-left: 4px solid #a78bfa;">
+        <div class="card-title">Resultado de Probabilidad Obtenido</div>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div id="res-ts-calc-label" style="font-size: 14px; font-weight: 600; color: var(--text-desc);">P(T ≤ a) =</div>
+          <div id="res-ts-calc-value" style="font-family: monospace; color: #a78bfa; font-weight: 700; font-size: 18px;">-</div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="card">
+          <div class="card-title" id="pdf-ts-graph-title">Curva de Densidad t-Student (PDF)</div>
+          <canvas id="calc-ts-pdf-canvas" style="height:150px;"></canvas>
+        </div>
+        <div class="card">
+          <div class="card-title">Distribución Acumulada Continuo (CDF)</div>
+          <canvas id="calc-ts-cdf-canvas" style="height:150px;"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div id="calc-chicuadrado-content" style="display:none;">
+      <div class="card">
+        <div class="card-title">Parámetros de la Distribución Chi-Cuadrado</div>
+        <div class="grid2">
+          <div><label>Grados de Libertad (ν)</label><input type="number" id="calc-chi-df" value="5" min="1" step="1" oninput="ejecutarCalculadoraChiPorOpcion()"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Selecciona la Probabilidad a Calcular (Valores ≥ 0)</div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <input type="number" id="calc-chi-a" value="1.5" step="0.1" min="0" style="width:100px;" oninput="ejecutarCalculadoraChiPorOpcion()">
+            <label style="margin:0;">Valor crítico límite (a)</label>
+          </div>
+          <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 8px;">
+            <input type="number" id="calc-chi-b" value="11.5" step="0.1" min="0" style="width:100px;" oninput="ejecutarCalculadoraChiPorOpcion()">
+            <label style="margin:0;">Valor crítico límite (b)</label>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; margin-top: 12px;">
+          <button class="btn-outline" id="btn-chi-opt-1" onclick="cambiarOpcionCalculadoraChi(1)" style="margin:0;">Calcular P(𝒳² ≤ a)</button>
+          <button class="btn-outline" id="btn-chi-opt-2" onclick="cambiarOpcionCalculadoraChi(2)" style="margin:0;">Calcular P(𝒳² > a)</button>
+          <button class="btn-outline" id="btn-chi-opt-3" onclick="cambiarOpcionCalculadoraChi(3)" style="margin:0;">Calcular P(a ≤ 𝒳² ≤ b)</button>
+          <button class="btn-outline" id="btn-chi-opt-4" onclick="cambiarOpcionCalculadoraChi(4)" style="margin:0;">Calcular P(𝒳² < a o 𝒳² > b)</button>
+        </div>
+      </div>
+
+      <div class="card" style="border-left: 4px solid #0ea5e9;">
+        <div class="card-title">Resultado de Probabilidad Obtenido</div>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div id="res-chi-calc-label" style="font-size: 14px; font-weight: 600; color: var(--text-desc);">P(𝒳² ≤ a) =</div>
+          <div id="res-chi-calc-value" style="font-family: monospace; color: #0ea5e9; font-weight: 700; font-size: 18px;">-</div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="card">
+          <div class="card-title" id="pdf-chi-graph-title">Curva de Densidad Chi-Cuadrado (PDF)</div>
+          <canvas id="calc-chi-pdf-canvas" style="height:150px;"></canvas>
+        </div>
+        <div class="card">
+          <div class="card-title">Distribución Acumulada Continua (CDF)</div>
+          <canvas id="calc-chi-cdf-canvas" style="height:150px;"></canvas>
         </div>
       </div>
     </div>
@@ -1017,7 +1192,8 @@
 
   </div>
 
-  </div> <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </div> 
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <script src="math.js"></script>
   <script src="ui.js"></script>

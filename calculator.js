@@ -785,6 +785,9 @@ function drawCalcChiPDF(df, a, b) {
 
   ctx.fillStyle = 'rgba(14, 165, 233, 0.25)'; 
   const drawShaded = (start, end) => {
+    // === BLINDAJE CONTRA BUCLE INFINITO ===
+    if (end <= start) return; 
+    
     ctx.beginPath(); ctx.moveTo(tx(start), ty(0));
     const step = (end - start) / 100;
     for (let x = start; x <= end; x += step) {
@@ -815,7 +818,8 @@ function drawCalcChiPDF(df, a, b) {
     ctx.strokeStyle = '#ea580c'; ctx.beginPath(); ctx.moveTo(tx(b), ty(0)); ctx.lineTo(tx(b), ty(valB)); ctx.stroke();
   }
   ctx.strokeStyle = isDark ? '#1e2d40' : '#cbd5e1'; ctx.beginPath(); ctx.moveTo(0, ty(0)); ctx.lineTo(W, ty(0)); ctx.stroke();
-}
+  }
+    
 
 function drawCalcChiCDF(df, a, b) {
   const canvas = document.getElementById('calc-chi-cdf-canvas');

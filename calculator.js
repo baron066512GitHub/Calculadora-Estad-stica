@@ -1509,15 +1509,17 @@ function drawCalcGammaCDF(alpha, beta, a, b) {
   const W = rect.width, H = 150;
   const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
 
-  const xMax = Math.max(a, b, (alpha / beta) * 3, 5) * 1.3;
-  const xMin = 0;
-  const tx = x => ((x - xMin) / (xMax - xMin)) * (W - 40) + 20;
+  const gammaMean2 = beta > 0 ? (alpha / beta) : 5;
+  const xMax2 = Math.max(a, b, gammaMean2 * 3, 5) * 1.3;
+  const xMin2 = 0;
+  const range2 = xMax2 - xMin2 || 1;
+  const tx2 = x => ((x - xMin2) / range2) * (W - 40) + 20;
   const ty = y => H - y * (H - 30) - 20;
 
   ctx.beginPath();
   for (let i = 0; i <= 200; i++) {
-    const x = xMin + (i / 200) * (xMax - xMin);
-    i === 0 ? ctx.moveTo(tx(x), ty(gammaCDF(x, alpha, beta))) : ctx.lineTo(tx(x), ty(gammaCDF(x, alpha, beta)));
+    const x = xMin2 + (i / 200) * range2;
+    i === 0 ? ctx.moveTo(tx2(x), ty(gammaCDF(x, alpha, beta))) : ctx.lineTo(tx2(x), ty(gammaCDF(x, alpha, beta)));
   }
   ctx.strokeStyle = '#0ea5e9'; ctx.lineWidth = 2; ctx.stroke();
   ctx.strokeStyle = isDark ? '#1e2d40' : '#cbd5e1'; ctx.beginPath(); ctx.moveTo(0, ty(0)); ctx.lineTo(W, ty(0)); ctx.stroke();

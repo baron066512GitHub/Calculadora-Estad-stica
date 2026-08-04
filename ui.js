@@ -64,6 +64,8 @@ function switchTab(tab) {
     } else if (currentDist === 'uniforme') {
       if (uniContent) uniContent.style.display = 'block';
       if (typeof ejecutarCalculadoraUniPorOpcion === 'function') ejecutarCalculadoraUniPorOpcion();
+    } else if (currentDist === 'tstudent' || currentDist === 'chicuadrado' || currentDist === 'fisher') {
+      // Estas distribuciones se manejan en calculator.js
     } else {
       document.getElementById('calc-warning').style.display = 'block';
     }
@@ -101,6 +103,8 @@ function changeDistribution() {
     icon.textContent = '𝓉'; title.textContent = 'Simulación Distribución t-Student'; subtitle.textContent = 'Método: Cociente Normal / √Chi²';
   } else if (currentDist === 'chicuadrado') {
     icon.textContent = '𝒳²'; title.textContent = 'Simulación Chi-Cuadrado'; subtitle.textContent = 'Método: Suma de Normales Estándar al Cuadrado';
+  } else if (currentDist === 'fisher') {
+    icon.textContent = 'ℱ'; title.textContent = 'Simulación Distribución F de Fisher'; subtitle.textContent = 'Método: Cociente de Chi-Cuadradas';
   }
 
   // 2. Control de clases para cambiar secciones visuales (Fórmulas e Inputs)
@@ -153,6 +157,12 @@ function updateCalculatedValues() {
   } else if (currentDist === 'chicuadrado') {
     const df = parseInt(document.getElementById('chi-df').value) || 5;
     display.innerHTML = `E[X] = <span style="color:#0ea5e9;font-family:monospace;">${df.toFixed(4)}</span> | Var[X] = <span style="color:#f59e0b;font-family:monospace;">${(2 * df).toFixed(4)}</span>`;
+  } else if (currentDist === 'fisher') {
+    const d1 = parseInt(document.getElementById('fish-d1').value) || 5;
+    const d2 = parseInt(document.getElementById('fish-d2').value) || 10;
+    const tMean = d2 > 2 ? (d2 / (d2 - 2)).toFixed(4) : '∞ (d₂≤2)';
+    const tVar = d2 > 4 ? ((2 * d2 * d2 * (d1 + d2 - 2)) / (d1 * (d2 - 2) * (d2 - 2) * (d2 - 4))).toFixed(4) : '∞ (d₂≤4)';
+    display.innerHTML = `E[X] = <span style="color:#0ea5e9;font-family:monospace;">${tMean}</span> | Var[X] = <span style="color:#f59e0b;font-family:monospace;">${tVar}</span>`;
   } else {
     display.innerHTML = '';
   }
@@ -169,6 +179,9 @@ function exportToCSV() {
   } else if (currentDist === 'exponencial') {
     csv += `i,ri U(0-1),1-ri,ln(ri),Xi\n`;
     for (const r of resultados) csv += `${r.i},${r.ri.toFixed(6)},${r.extra[0]},${r.extra[1]},${r.xi.toFixed(6)}\n`;
+  } else if (currentDist === 'fisher' || currentDist === 'chicuadrado') {
+    csv += `i,Ecuacion,Xi\n`;
+    for (const r of resultados) csv += `${r.i},"${r.extra[0]}",${r.xi.toFixed(6)}\n`;
   } else {
     csv += `i,r_list,Producto,Xi\n`;
     for (const r of resultados) csv += `${r.i},"${r.extra[0]}",${r.extra[1]},${r.xi}\n`;
@@ -185,6 +198,9 @@ function copyToClipboard() {
   } else if (currentDist === 'exponencial') {
     txt += "i\tri (U(0,1))\t1-ri\tln(ri)\tXi\n";
     for (const r of resultados) txt += `${r.i}\t${r.ri.toFixed(6)}\t${r.extra[0]}\t${r.extra[1]}\t${r.xi.toFixed(6)}\n`;
+  } else if (currentDist === 'fisher' || currentDist === 'chicuadrado') {
+    txt += "i\tEcuacion\tXi\n";
+    for (const r of resultados) txt += `${r.i}\t${r.extra[0]}\t${r.xi.toFixed(6)}\n`;
   } else {
     txt += "i\tr_list\tProducto\tXi\n";
     for (const r of resultados) txt += `${r.i}\t${r.extra[0]}\t${r.extra[1]}\t${r.xi}\n`;

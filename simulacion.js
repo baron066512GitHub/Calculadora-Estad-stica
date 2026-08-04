@@ -104,6 +104,36 @@ function ejecutarSimulacion() {
         tbody.innerHTML += `<tr><td class="col-i">${i}</td><td class="col-fa" style="font-family:serif;">𝒳² = Σ Zᵢ² (i=1 hasta ${df})</td><td class="col-xi">${xi.toFixed(4)}</td></tr>`;
       }
     }
+  } else if (currentDist === 'fisher') {
+    const d1 = Math.max(1, parseInt(document.getElementById('fish-d1').value) || 5);
+    const d2 = Math.max(1, parseInt(document.getElementById('fish-d2').value) || 10);
+    paramsGlobales = { d1, d2 };
+
+    thead.innerHTML = `<tr><th>i</th><th>Ecuación Teórica de Generación</th><th>X<sub>i</sub> (F Calculada)</th></tr>`;
+    
+    for (let i = 1; i <= N; i++) {
+      const xi = generarFisher(d1, d2);
+      resultados.push({ i, ri: 0, xi, extra: ["(𝒳²₁/d₁)/(𝒳²₂/d₂)", xi.toFixed(4)] });
+      
+      if (i <= 200) {
+        tbody.innerHTML += `<tr><td class="col-i">${i}</td><td class="col-fa" style="font-family:serif;">F = (𝒳²₁/${d1}) / (𝒳²₂/${d2})</td><td class="col-xi">${xi.toFixed(4)}</td></tr>`;
+      }
+    }
+  } else if (currentDist === 'gamma') {
+    const alpha = Math.max(0.1, parseFloat(document.getElementById('gam-alpha').value) || 2);
+    const beta = Math.max(0.1, parseFloat(document.getElementById('gam-beta').value) || 1);
+    paramsGlobales = { alpha, beta };
+
+    thead.innerHTML = `<tr><th>i</th><th>Ecuación Teórica de Generación</th><th>X<sub>i</sub> (Gamma Calculada)</th></tr>`;
+    
+    for (let i = 1; i <= N; i++) {
+      const xi = generarGamma(alpha, beta);
+      resultados.push({ i, ri: 0, xi, extra: ["Σ Exp(β)", xi.toFixed(4)] });
+      
+      if (i <= 200) {
+        tbody.innerHTML += `<tr><td class="col-i">${i}</td><td class="col-fa" style="font-family:serif;">X = Σ Eᵢ (i=1 hasta ${alpha.toFixed(1)}, Eᵢ ~ Exp(${beta}))</td><td class="col-xi">${xi.toFixed(4)}</td></tr>`;
+      }
+    }
   }
 
   if (N > 200) {
@@ -136,6 +166,17 @@ function calcularEstadisticasYGrafico(N) {
     tMean = paramsGlobales.df; 
     tVar = 2 * paramsGlobales.df; 
     tStd = Math.sqrt(tVar); 
+    tCv = tStd / tMean;
+  } else if (currentDist === 'fisher') {
+    const d1 = paramsGlobales.d1, d2 = paramsGlobales.d2;
+    tMean = d2 > 2 ? d2 / (d2 - 2) : NaN;
+    tVar = d2 > 4 ? (2 * d2 * d2 * (d1 + d2 - 2)) / (d1 * (d2 - 2) * (d2 - 2) * (d2 - 4)) : NaN;
+    tStd = Math.sqrt(tVar);
+    tCv = tMean !== 0 ? (tStd / Math.abs(tMean)) : 0;
+  } else if (currentDist === 'gamma') {
+    tMean = paramsGlobales.alpha / paramsGlobales.beta;
+    tVar = paramsGlobales.alpha / (paramsGlobales.beta ** 2);
+    tStd = Math.sqrt(tVar);
     tCv = tStd / tMean;
   }
 
@@ -293,6 +334,12 @@ function reDrawChart() {
   } else if (currentDist === 'chicuadrado') {
     xMin = 0; 
     xMax = paramsGlobales.df + 4 * Math.sqrt(2 * paramsGlobales.df);
+  } else if (currentDist === 'fisher') {
+    xMin = 0;
+    xMax = Math.max(xMax, 5, (paramsGlobales.d2 / (paramsGlobales.d2 - 2)) * 2 || 5) * 1.3;
+  } else if (currentDist === 'gamma') {
+    xMin = 0;
+    xMax = Math.max(xMax, (paramsGlobales.alpha / paramsGlobales.beta) * 3, 5) * 1.3;
   }
 
   const isDiscrete = currentDist === 'poisson';
@@ -414,6 +461,12 @@ function generarTablaFrecuencias(xs) {
     } else if (currentDist === 'chicuadrado') {
       xMin = 0; 
       xMax = paramsGlobales.df + 4 * Math.sqrt(2 * paramsGlobales.df);
+    } else if (currentDist === 'fisher') {
+      xMin = 0;
+      xMax = Math.max(xMax, 5, (paramsGlobales.d2 / (paramsGlobales.d2 - 2)) * 2 || 5) * 1.3;
+    } else if (currentDist === 'gamma') {
+      xMin = 0;
+      xMax = Math.max(xMax, (paramsGlobales.alpha / paramsGlobales.beta) * 3, 5) * 1.3;
     }
 
     const bw = (xMax - xMin) / bins;

@@ -191,6 +191,98 @@ function drawCalcCDF(mu, sigma, a, b) {
   ctx.strokeStyle = isDark ? '#1e2d40' : '#cbd5e1'; ctx.beginPath(); ctx.moveTo(0, ty(0)); ctx.lineTo(W, ty(0)); ctx.stroke();
 }
 
+// --- EVALUACIÓN DEL VALOR CRÍTICO Z_{α/2} (INTERVALOS DE CONFIANZA) ---
+function zConfSelChange() {
+  const sel = document.getElementById('calc-z-conf');
+  const customContainer = document.getElementById('calc-z-conf-custom-container');
+  if (sel.value === 'custom') {
+    customContainer.style.display = 'block';
+  } else {
+    customContainer.style.display = 'none';
+  }
+  ejecutarValorCriticoZ();
+}
+
+function ejecutarValorCriticoZ() {
+  const sel = document.getElementById('calc-z-conf');
+  let confianza;
+  if (sel.value === 'custom') {
+    confianza = parseFloat(document.getElementById('calc-z-conf-custom').value);
+  } else {
+    confianza = parseFloat(sel.value);
+  }
+  if (isNaN(confianza) || confianza <= 0 || confianza >= 1) return;
+
+  const alpha = 1 - confianza;
+  const halfAlpha = alpha / 2;
+  const areaAcumulada = 1 - halfAlpha;
+  const zCritico = invNormalCDF(areaAcumulada);
+
+  document.getElementById('z-calc-alpha').textContent = alpha.toFixed(4);
+  document.getElementById('z-calc-half').textContent = halfAlpha.toFixed(4);
+  document.getElementById('z-calc-area').textContent = areaAcumulada.toFixed(4);
+  document.getElementById('res-z-crit-value').textContent = zCritico.toFixed(4);
+  document.getElementById('res-z-crit-desc').textContent = `Para una confianza del ${(confianza * 100).toFixed(1)}%, α = ${alpha.toFixed(4)}, α/2 = ${halfAlpha.toFixed(4)}. Se busca el área acumulada ${areaAcumulada.toFixed(4)} en la tabla Z, dando Z${zCritico >= 0 ? '' : ' = '}${zCritico >= 0 ? '+' : ''}${zCritico.toFixed(2)}`;
+
+  drawCalcZCrit(confianza, zCritico, halfAlpha);
+}
+
+function drawCalcZCrit(confianza, zCritico, halfAlpha) {
+  const canvas = document.getElementById('calc-z-crit-canvas');
+  if (!canvas) return;
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr; canvas.height = 150 * dpr;
+  const ctx = canvas.getContext('2d'); ctx.scale(dpr, dpr);
+  const W = rect.width, H = 150;
+  const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+
+  const xMin = -4, xMax = 4;
+  const tx = x => ((x - xMin) / (xMax - xMin)) * (W - 40) + 20;
+  const maxPdf = normalPDF(0, 0, 1);
+  const ty = y => H - (y / (maxPdf * 1.2)) * (H - 30) - 20;
+
+  // Sombreado de las dos colas
+  ctx.fillStyle = 'rgba(0, 212, 170, 0.25)';
+  const tailColor = 'rgba(239, 68, 68, 0.4)';
+
+  // Cola izquierda
+  ctx.fillStyle = tailColor;
+  ctx.beginPath(); ctx.moveTo(tx(xMin), ty(0));
+  const stepLeft = (zCritico - xMin) / 50;
+  for (let x = xMin; x <= zCritico; x += stepLeft) ctx.lineTo(tx(x), ty(normalPDF(x, 0, 1)));
+  ctx.lineTo(tx(zCritico), ty(0)); ctx.closePath(); ctx.fill();
+
+  // Cola derecha
+  ctx.beginPath(); ctx.moveTo(tx(zCritico), ty(0));
+  const stepRight = (xMax - zCritico) / 50;
+  for (let x = zCritico; x <= xMax; x += stepRight) ctx.lineTo(tx(x), ty(normalPDF(x, 0, 1)));
+  ctx.lineTo(tx(xMax), ty(0)); ctx.closePath(); ctx.fill();
+
+  // Curva normal
+  ctx.beginPath();
+  for (let i = 0; i <= 200; i++) {
+    const x = xMin + (i / 200) * (xMax - xMin);
+    i === 0 ? ctx.moveTo(tx(x), ty(normalPDF(x, 0, 1))) : ctx.lineTo(tx(x), ty(normalPDF(x, 0, 1)));
+  }
+  ctx.strokeStyle = '#00d4aa'; ctx.lineWidth = 2; ctx.stroke();
+
+  // Línea Z
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = '#ef4444';
+  ctx.setLineDash([4, 3]);
+  ctx.beginPath(); ctx.moveTo(tx(zCritico), ty(0)); ctx.lineTo(tx(zCritico), ty(normalPDF(zCritico, 0, 1))); ctx.stroke();
+  ctx.lineTo(tx(-zCritico), ty(normalPDF(-zCritico, 0, 1))); ctx.lineTo(tx(-zCritico), ty(0)); ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.fillStyle = '#ef4444'; ctx.font = 'bold 10px monospace'; ctx.textAlign = 'center';
+  ctx.fillText(`-Z = -${zCritico.toFixed(2)}`, tx(-zCritico), ty(0) + 12);
+  ctx.fillText(`Z = ${zCritico.toFixed(2)}`, tx(zCritico), ty(0) + 12);
+
+  // Línea base
+  ctx.strokeStyle = isDark ? '#1e2d40' : '#cbd5e1'; ctx.beginPath(); ctx.moveTo(0, ty(0)); ctx.lineTo(W, ty(0)); ctx.stroke();
+}
+
 // --- CALCULADORA EXPONENCIAL ---
 function cambiarOpcionCalculadoraExp(opcion) {
   calcExpOpcionActiva = opcion;
@@ -707,6 +799,119 @@ function drawCalcTStudentCDF(df, a, b) {
   ctx.strokeStyle = isDark ? '#1e2d40' : '#cbd5e1'; ctx.beginPath(); ctx.moveTo(0, ty(0)); ctx.lineTo(W, ty(0)); ctx.stroke();
 }
 
+// --- EVALUACIÓN DEL VALOR CRÍTICO t (TABLA t-STUDENT) ---
+let calcTSCritOpcionActiva = 1;
+
+function cambiarOpcionCriticaTS(opcion) {
+  calcTSCritOpcionActiva = opcion;
+  for (let i = 1; i <= 3; i++) {
+    const btn = document.getElementById(`btn-ts-crit-${i}`);
+    if (btn) {
+      btn.style.background = i === opcion ? 'rgba(167, 139, 250, 0.15)' : 'transparent';
+      btn.style.borderColor = i === opcion ? '#a78bfa' : '';
+    }
+  }
+  ejecutarValorCriticoTS();
+}
+
+function ejecutarValorCriticoTS() {
+  if (currentDist !== 'tstudent') return;
+
+  const dfRaw = document.getElementById('calc-ts-crit-df').value;
+  const alphaRaw = document.getElementById('calc-ts-crit-alpha').value;
+
+  // Validación anti-crasheo
+  if (dfRaw === "" || alphaRaw === "") return;
+
+  const df = parseInt(dfRaw);
+  const alpha = parseFloat(alphaRaw);
+
+  if (isNaN(df) || isNaN(alpha) || df < 1 || alpha <= 0 || alpha >= 1) return;
+
+  let tCritico = 0, labelTexto = "", descripcion = "";
+
+  switch (calcTSCritOpcionActiva) {
+    case 1: // Cola Derecha: P(T > t) = α → P(T ≤ t) = 1 - α
+      tCritico = invTStudentCDF(1 - alpha, df);
+      labelTexto = `t<sub>${alpha}, ${df}</sub> =`;
+      descripcion = `Cola derecha: P(T > ${tCritico.toFixed(4)}) = ${alpha}`;
+      break;
+    case 2: // Cola Izquierda: P(T < t) = α → P(T ≤ t) = α
+      tCritico = invTStudentCDF(alpha, df);
+      labelTexto = `t<sub>${alpha}, ${df}</sub> =`;
+      descripcion = `Cola izquierda: P(T < ${tCritico.toFixed(4)}) = ${alpha}`;
+      break;
+    case 3: // Dos Colas: P(T > t) = α/2 → P(T ≤ t) = 1 - α/2
+      tCritico = invTStudentCDF(1 - alpha / 2, df);
+      labelTexto = `t<sub>${alpha}/2, ${df}</sub> =`;
+      descripcion = `Dos colas: P(T > ${tCritico.toFixed(4)}) = ${alpha}/2 = ${(alpha/2).toFixed(4)}`;
+      break;
+  }
+
+  const labelEl = document.getElementById('res-ts-crit-label');
+  const valEl = document.getElementById('res-ts-crit-value');
+  const descEl = document.getElementById('res-ts-crit-desc');
+
+  if (labelEl) labelEl.innerHTML = labelTexto;
+  if (valEl) valEl.textContent = tCritico.toFixed(4);
+  if (descEl) descEl.textContent = descripcion;
+
+  // Resaltar la fila correspondiente en la tabla de verificación
+  resaltarFilaTablaT(df);
+}
+
+// Genera la tabla de valores críticos t-Student para verificación manual
+function generarTablaTStudent() {
+  const tbody = document.getElementById('ts-crit-table-body');
+  if (!tbody) return;
+
+  const alphas = [0.45, 0.40, 0.35, 0.30, 0.25, 0.20, 0.15, 0.10, 0.05, 0.025, 0.01, 0.005];
+  const maxDf = 30;
+  let html = '';
+
+  for (let df = 1; df <= maxDf; df++) {
+    html += `<tr id="ts-row-${df}">`;
+    html += `<td style="font-weight:600;">${df}</td>`;
+    for (const alpha of alphas) {
+      const tVal = invTStudentCDF(1 - alpha, df);
+      html += `<td>${tVal.toFixed(3)}</td>`;
+    }
+    html += '</tr>';
+  }
+
+  // Fila ∞ (aproximación normal)
+  html += `<tr id="ts-row-inf"><td style="font-weight:600;">∞</td>`;
+  for (const alpha of alphas) {
+    const tVal = invNormalCDF(1 - alpha);
+    html += `<td>${tVal.toFixed(3)}</td>`;
+  }
+  html += '</tr>';
+
+  tbody.innerHTML = html;
+}
+
+// Resalta la fila de la tabla correspondiente a los grados de libertad seleccionados
+function resaltarFilaTablaT(df) {
+  const tbody = document.getElementById('ts-crit-table-body');
+  if (!tbody) return;
+
+  // Limpiar resaltados anteriores
+  const filas = tbody.querySelectorAll('tr');
+  filas.forEach(fila => {
+    fila.style.background = '';
+    fila.style.color = '';
+    fila.style.fontWeight = '';
+  });
+
+  // Resaltar la fila correspondiente
+  const filaObjetivo = document.getElementById(`ts-row-${df}`);
+  if (filaObjetivo) {
+    filaObjetivo.style.background = 'rgba(167, 139, 250, 0.2)';
+    filaObjetivo.style.color = '#a78bfa';
+    filaObjetivo.style.fontWeight = '700';
+  }
+}
+
 // --- CALCULADORA CHI-CUADRADO (NUEVA) ---
 let calcChiOpcionActiva = 1;
 
@@ -785,9 +990,6 @@ function drawCalcChiPDF(df, a, b) {
 
   ctx.fillStyle = 'rgba(14, 165, 233, 0.25)'; 
   const drawShaded = (start, end) => {
-    // === BLINDAJE CONTRA BUCLE INFINITO ===
-    if (end <= start) return; 
-    
     ctx.beginPath(); ctx.moveTo(tx(start), ty(0));
     const step = (end - start) / 100;
     for (let x = start; x <= end; x += step) {
@@ -818,8 +1020,7 @@ function drawCalcChiPDF(df, a, b) {
     ctx.strokeStyle = '#ea580c'; ctx.beginPath(); ctx.moveTo(tx(b), ty(0)); ctx.lineTo(tx(b), ty(valB)); ctx.stroke();
   }
   ctx.strokeStyle = isDark ? '#1e2d40' : '#cbd5e1'; ctx.beginPath(); ctx.moveTo(0, ty(0)); ctx.lineTo(W, ty(0)); ctx.stroke();
-  }
-    
+}
 
 function drawCalcChiCDF(df, a, b) {
   const canvas = document.getElementById('calc-chi-cdf-canvas');
@@ -839,6 +1040,484 @@ function drawCalcChiCDF(df, a, b) {
   for (let i = 0; i <= 200; i++) {
     const x = xMin + (i / 200) * (xMax - xMin);
     i === 0 ? ctx.moveTo(tx(x), ty(chiCuadradoCDF(x, df))) : ctx.lineTo(tx(x), ty(chiCuadradoCDF(x, df)));
+  }
+  ctx.strokeStyle = '#0ea5e9'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.strokeStyle = isDark ? '#1e2d40' : '#cbd5e1'; ctx.beginPath(); ctx.moveTo(0, ty(0)); ctx.lineTo(W, ty(0)); ctx.stroke();
+}
+
+// --- EVALUACIÓN DEL VALOR CRÍTICO 𝒳² (TABLA CHI-CUADRADO) ---
+let calcChiCritOpcionActiva = 1;
+
+function cambiarOpcionCriticaChi(opcion) {
+  calcChiCritOpcionActiva = opcion;
+  for (let i = 1; i <= 3; i++) {
+    const btn = document.getElementById(`btn-chi-crit-${i}`);
+    if (btn) {
+      btn.style.background = i === opcion ? 'rgba(14, 165, 233, 0.15)' : 'transparent';
+      btn.style.borderColor = i === opcion ? '#0ea5e9' : '';
+    }
+  }
+  ejecutarValorCriticoChi();
+}
+
+function ejecutarValorCriticoChi() {
+  if (currentDist !== 'chicuadrado') return;
+
+  const dfRaw = document.getElementById('calc-chi-crit-df').value;
+  const alphaRaw = document.getElementById('calc-chi-crit-alpha').value;
+
+  // Validación anti-crasheo
+  if (dfRaw === "" || alphaRaw === "") return;
+
+  const df = parseInt(dfRaw);
+  const alpha = parseFloat(alphaRaw);
+
+  if (isNaN(df) || isNaN(alpha) || df < 1 || alpha <= 0 || alpha >= 1) return;
+
+  let chiCritico = 0, labelTexto = "", descripcion = "";
+
+  switch (calcChiCritOpcionActiva) {
+    case 1: // Cola Derecha: P(𝒳² > x) = α → P(𝒳² ≤ x) = 1 - α
+      chiCritico = invChiCuadradoCDF(1 - alpha, df);
+      labelTexto = `𝒳²<sub>${alpha}, ${df}</sub> =`;
+      descripcion = `Cola derecha: P(𝒳² > ${chiCritico.toFixed(4)}) = ${alpha}`;
+      break;
+    case 2: // Cola Izquierda: P(𝒳² < x) = α → P(𝒳² ≤ x) = α
+      chiCritico = invChiCuadradoCDF(alpha, df);
+      labelTexto = `𝒳²<sub>${alpha}, ${df}</sub> =`;
+      descripcion = `Cola izquierda: P(𝒳² < ${chiCritico.toFixed(4)}) = ${alpha}`;
+      break;
+    case 3: // Dos Colas: P(𝒳² > x) = α/2 → P(𝒳² ≤ x) = 1 - α/2
+      chiCritico = invChiCuadradoCDF(1 - alpha / 2, df);
+      labelTexto = `𝒳²<sub>${alpha}/2, ${df}</sub> =`;
+      descripcion = `Dos colas: P(𝒳² > ${chiCritico.toFixed(4)}) = ${alpha}/2 = ${(alpha/2).toFixed(4)}`;
+      break;
+  }
+
+  const labelEl = document.getElementById('res-chi-crit-label');
+  const valEl = document.getElementById('res-chi-crit-value');
+  const descEl = document.getElementById('res-chi-crit-desc');
+
+  if (labelEl) labelEl.innerHTML = labelTexto;
+  if (valEl) valEl.textContent = chiCritico.toFixed(4);
+  if (descEl) descEl.textContent = descripcion;
+
+  // Resaltar la fila correspondiente en la tabla de verificación
+  resaltarFilaTablaChi(df);
+}
+
+// Genera la tabla de valores críticos Chi-Cuadrado para verificación manual
+function generarTablaChiCuadrado() {
+  const tbody = document.getElementById('chi-crit-table-body');
+  if (!tbody) return;
+
+  const alphas = [0.995, 0.990, 0.975, 0.950, 0.900, 0.750, 0.500, 0.250, 0.100, 0.050, 0.025, 0.010, 0.005, 0.001];
+  const maxDf = 30;
+  let html = '';
+
+  for (let df = 1; df <= maxDf; df++) {
+    html += `<tr id="chi-row-${df}">`;
+    html += `<td style="font-weight:600;">${df}</td>`;
+    for (const alpha of alphas) {
+      const chiVal = invChiCuadradoCDF(alpha, df);
+      html += `<td>${chiVal.toFixed(3)}</td>`;
+    }
+    html += '</tr>';
+  }
+
+  tbody.innerHTML = html;
+}
+
+// Resalta la fila de la tabla correspondiente a los grados de libertad seleccionados
+function resaltarFilaTablaChi(df) {
+  const tbody = document.getElementById('chi-crit-table-body');
+  if (!tbody) return;
+
+  // Limpiar resaltados anteriores
+  const filas = tbody.querySelectorAll('tr');
+  filas.forEach(fila => {
+    fila.style.background = '';
+    fila.style.color = '';
+    fila.style.fontWeight = '';
+  });
+
+  // Resaltar la fila correspondiente
+  const filaObjetivo = document.getElementById(`chi-row-${df}`);
+  if (filaObjetivo) {
+    filaObjetivo.style.background = 'rgba(14, 165, 233, 0.2)';
+    filaObjetivo.style.color = '#0ea5e9';
+    filaObjetivo.style.fontWeight = '700';
+  }
+}
+
+// --- CALCULADORA F DE FISHER ---
+let calcFishOpcionActiva = 1;
+
+function cambiarOpcionCalculadoraFish(opcion) {
+  calcFishOpcionActiva = opcion;
+  for (let i = 1; i <= 4; i++) {
+    const btn = document.getElementById(`btn-fish-opt-${i}`);
+    if (btn) {
+      btn.style.background = i === opcion ? 'rgba(34, 197, 94, 0.15)' : 'transparent';
+      btn.style.borderColor = i === opcion ? '#22c55e' : '';
+    }
+  }
+  ejecutarCalculadoraFishPorOpcion();
+}
+
+function ejecutarCalculadoraFishPorOpcion() {
+  if (currentDist !== 'fisher') return;
+
+  const d1Raw = document.getElementById('calc-fish-d1').value;
+  const d2Raw = document.getElementById('calc-fish-d2').value;
+  const aRaw = document.getElementById('calc-fish-a').value;
+  const bRaw = document.getElementById('calc-fish-b').value;
+
+  if (d1Raw === "" || d2Raw === "" || aRaw === "" || bRaw === "") return;
+
+  const d1 = parseInt(d1Raw);
+  const d2 = parseInt(d2Raw);
+  let a = Math.max(0, parseFloat(aRaw));
+  let b = Math.max(0, parseFloat(bRaw));
+
+  if (isNaN(d1) || isNaN(d2) || isNaN(a) || isNaN(b) || d1 < 1 || d2 < 1) return;
+  if (a < 0) a = 0; if (b < 0) b = 0;
+
+  const cdfA = fisherCDF(a, d1, d2);
+  const cdfB = fisherCDF(b, d1, d2);
+
+  let resultadoFinal = 0, labelTexto = "", tituloGrafico = "";
+  switch (calcFishOpcionActiva) {
+    case 1: resultadoFinal = cdfA; labelTexto = `P(F ≤ ${a}) =`; tituloGrafico = `Área Sombreada Izquierda hasta a = ${a}`; break;
+    case 2: resultadoFinal = 1 - cdfA; labelTexto = `P(F > ${a}) =`; tituloGrafico = `Área Sombreada Derecha desde a = ${a}`; break;
+    case 3: resultadoFinal = b >= a ? (cdfB - cdfA) : 0; labelTexto = b >= a ? `P(${a} ≤ F ≤ ${b}) =` : "Error: Límite 'a' debe ser ≤ 'b'"; tituloGrafico = b >= a ? `Área Central entre ${a} y ${b}` : "Error"; break;
+    case 4: resultadoFinal = 1 - (b >= a ? (cdfB - cdfA) : 0); labelTexto = b >= a ? `P(F < ${a} o F > ${b}) =` : "Error"; tituloGrafico = b >= a ? `Áreas Fuera de [${a}, ${b}]` : "Error"; break;
+  }
+
+  const labelEl = document.getElementById('res-fish-calc-label');
+  const valEl = document.getElementById('res-fish-calc-value');
+  const titleEl = document.getElementById('pdf-fish-graph-title');
+
+  if (labelEl) labelEl.textContent = labelTexto;
+  if (valEl) valEl.textContent = resultadoFinal.toFixed(6);
+  if (titleEl) titleEl.textContent = `Curva de Densidad F (d₁=${d1}, d₂=${d2}) — ${tituloGrafico}`;
+
+  drawCalcFisherPDF(d1, d2, a, b);
+  drawCalcFisherCDF(d1, d2, a, b);
+}
+
+function drawCalcFisherPDF(d1, d2, a, b) {
+  const canvas = document.getElementById('calc-fish-pdf-canvas');
+  if (!canvas) return;
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr; canvas.height = 150 * dpr;
+  const ctx = canvas.getContext('2d'); ctx.scale(dpr, dpr);
+  const W = rect.width, H = 150;
+  const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+
+  const xMax = Math.max(a, b, 5, (d2/(d2-2)) * 2 || 5) * 1.3;
+  const xMin = 0;
+  const tx = x => ((x - xMin) / (xMax - xMin)) * (W - 40) + 20;
+
+  let maxPdf = 0;
+  for (let x = 0.01; x <= xMax; x += 0.01) {
+    const y = fisherPDF(x, d1, d2);
+    if (y > maxPdf) maxPdf = y;
+  }
+  if (maxPdf === 0) maxPdf = 0.5;
+  const ty = y => H - (y / (maxPdf * 1.2)) * (H - 30) - 20;
+
+  ctx.fillStyle = 'rgba(34, 197, 94, 0.25)';
+  const drawShaded = (start, end) => {
+    ctx.beginPath(); ctx.moveTo(tx(start), ty(0));
+    const step = (end - start) / 100;
+    for (let x = start; x <= end; x += step) ctx.lineTo(tx(x), ty(fisherPDF(x, d1, d2)));
+    ctx.lineTo(tx(end), ty(0)); ctx.closePath(); ctx.fill();
+  };
+
+  if (calcFishOpcionActiva === 1) drawShaded(xMin, a);
+  else if (calcFishOpcionActiva === 2) drawShaded(a, xMax);
+  else if (calcFishOpcionActiva === 3 && b > a) drawShaded(a, b);
+  else if (calcFishOpcionActiva === 4) { drawShaded(xMin, a); if (b > a) drawShaded(b, xMax); }
+
+  ctx.beginPath();
+  for (let i = 0; i <= 200; i++) {
+    const x = xMin + (i / 200) * (xMax - xMin);
+    i === 0 ? ctx.moveTo(tx(x), ty(fisherPDF(x, d1, d2))) : ctx.lineTo(tx(x), ty(fisherPDF(x, d1, d2)));
+  }
+  ctx.strokeStyle = '#22c55e'; ctx.lineWidth = 2; ctx.stroke();
+
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = '#ef4444'; ctx.beginPath(); ctx.moveTo(tx(a), ty(0)); ctx.lineTo(tx(a), ty(fisherPDF(a, d1, d2))); ctx.stroke();
+  if ((calcFishOpcionActiva === 3 || calcFishOpcionActiva === 4) && b >= a) {
+    ctx.strokeStyle = '#ea580c'; ctx.beginPath(); ctx.moveTo(tx(b), ty(0)); ctx.lineTo(tx(b), ty(fisherPDF(b, d1, d2))); ctx.stroke();
+  }
+  ctx.strokeStyle = isDark ? '#1e2d40' : '#cbd5e1'; ctx.beginPath(); ctx.moveTo(0, ty(0)); ctx.lineTo(W, ty(0)); ctx.stroke();
+}
+
+function drawCalcFisherCDF(d1, d2, a, b) {
+  const canvas = document.getElementById('calc-fish-cdf-canvas');
+  if (!canvas) return;
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr; canvas.height = 150 * dpr;
+  const ctx = canvas.getContext('2d'); ctx.scale(dpr, dpr);
+  const W = rect.width, H = 150;
+  const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+
+  const xMax = Math.max(a, b, 5, (d2/(d2-2)) * 2 || 5) * 1.3;
+  const xMin = 0;
+  const tx = x => ((x - xMin) / (xMax - xMin)) * (W - 40) + 20;
+  const ty = y => H - y * (H - 30) - 20;
+
+  ctx.beginPath();
+  for (let i = 0; i <= 200; i++) {
+    const x = xMin + (i / 200) * (xMax - xMin);
+    i === 0 ? ctx.moveTo(tx(x), ty(fisherCDF(x, d1, d2))) : ctx.lineTo(tx(x), ty(fisherCDF(x, d1, d2)));
+  }
+  ctx.strokeStyle = '#0ea5e9'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.strokeStyle = isDark ? '#1e2d40' : '#cbd5e1'; ctx.beginPath(); ctx.moveTo(0, ty(0)); ctx.lineTo(W, ty(0)); ctx.stroke();
+}
+
+// --- EVALUACIÓN DEL VALOR CRÍTICO F (TABLA F DE FISHER) ---
+let calcFishCritOpcionActiva = 1;
+
+function cambiarOpcionCriticaFish(opcion) {
+  calcFishCritOpcionActiva = opcion;
+  for (let i = 1; i <= 3; i++) {
+    const btn = document.getElementById(`btn-fish-crit-${i}`);
+    if (btn) {
+      btn.style.background = i === opcion ? 'rgba(34, 197, 94, 0.15)' : 'transparent';
+      btn.style.borderColor = i === opcion ? '#22c55e' : '';
+    }
+  }
+  ejecutarValorCriticoFish();
+}
+
+function ejecutarValorCriticoFish() {
+  if (currentDist !== 'fisher') return;
+
+  const d1Raw = document.getElementById('calc-fish-crit-d1').value;
+  const d2Raw = document.getElementById('calc-fish-crit-d2').value;
+  const alphaRaw = document.getElementById('calc-fish-crit-alpha').value;
+
+  if (d1Raw === "" || d2Raw === "" || alphaRaw === "") return;
+
+  const d1 = parseInt(d1Raw);
+  const d2 = parseInt(d2Raw);
+  const alpha = parseFloat(alphaRaw);
+
+  if (isNaN(d1) || isNaN(d2) || isNaN(alpha) || d1 < 1 || d2 < 1 || alpha <= 0 || alpha >= 1) return;
+
+  let fCritico = 0, labelTexto = "", descripcion = "";
+
+  switch (calcFishCritOpcionActiva) {
+    case 1: // Cola Derecha: P(F > x) = α → P(F ≤ x) = 1 - α
+      fCritico = invFisherCDF(1 - alpha, d1, d2);
+      labelTexto = `F<sub>${alpha}, ${d1}, ${d2}</sub> =`;
+      descripcion = `Cola derecha: P(F > ${fCritico.toFixed(4)}) = ${alpha}`;
+      break;
+    case 2: // Cola Izquierda: P(F < x) = α → P(F ≤ x) = α
+      fCritico = invFisherCDF(alpha, d1, d2);
+      labelTexto = `F<sub>${alpha}, ${d1}, ${d2}</sub> =`;
+      descripcion = `Cola izquierda: P(F < ${fCritico.toFixed(4)}) = ${alpha}`;
+      break;
+    case 3: // Dos Colas: P(F > x) = α/2 → P(F ≤ x) = 1 - α/2
+      fCritico = invFisherCDF(1 - alpha / 2, d1, d2);
+      labelTexto = `F<sub>${alpha}/2, ${d1}, ${d2}</sub> =`;
+      descripcion = `Dos colas: P(F > ${fCritico.toFixed(4)}) = ${alpha}/2 = ${(alpha/2).toFixed(4)}`;
+      break;
+  }
+
+  const labelEl = document.getElementById('res-fish-crit-label');
+  const valEl = document.getElementById('res-fish-crit-value');
+  const descEl = document.getElementById('res-fish-crit-desc');
+
+  if (labelEl) labelEl.innerHTML = labelTexto;
+  if (valEl) valEl.textContent = fCritico.toFixed(4);
+  if (descEl) descEl.textContent = descripcion;
+
+  // Resaltar la celda correspondiente en la tabla de verificación
+  resaltarCeldaTablaFish(d1, d2);
+}
+
+// Genera la tabla de valores críticos F de Fisher para α = 0.05
+function generarTablaFisher() {
+  const tbody = document.getElementById('fish-crit-table-body');
+  if (!tbody) return;
+
+  const d2s = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 20, 30];
+  const maxD1 = 20;
+  let html = '';
+
+  for (let d1 = 1; d1 <= maxD1; d1++) {
+    html += `<tr id="fish-row-${d1}">`;
+    html += `<td style="font-weight:600;">${d1}</td>`;
+    for (const d2 of d2s) {
+      const fVal = invFisherCDF(0.95, d1, d2);
+      html += `<td id="fish-cell-${d1}-${d2}" data-d1="${d1}" data-d2="${d2}">${fVal.toFixed(3)}</td>`;
+    }
+    html += '</tr>';
+  }
+
+  html += `<tr id="fish-row-inf"><td style="font-weight:600;">∞</td>`;
+  for (const d2 of d2s) {
+    const fVal = invFisherCDF(0.95, 100, d2);
+    html += `<td>${fVal.toFixed(3)}</td>`;
+  }
+  html += '</tr>';
+
+  tbody.innerHTML = html;
+}
+
+// Resalta la celda de la tabla correspondiente a los grados de libertad seleccionados
+function resaltarCeldaTablaFish(d1, d2) {
+  const tbody = document.getElementById('fish-crit-table-body');
+  if (!tbody) return;
+
+  // Limpiar resaltados anteriores
+  const celdas = tbody.querySelectorAll('td');
+  celdas.forEach(celda => {
+    celda.style.background = '';
+    celda.style.color = '';
+    celda.style.fontWeight = '';
+  });
+
+  // Resaltar la celda correspondiente
+  const celdaObjetivo = document.getElementById(`fish-cell-${d1}-${d2}`);
+  if (celdaObjetivo) {
+    celdaObjetivo.style.background = 'rgba(34, 197, 94, 0.25)';
+    celdaObjetivo.style.color = '#22c55e';
+    celdaObjetivo.style.fontWeight = '700';
+  }
+}
+
+// --- CALCULADORA GAMMA ---
+let calcGamOpcionActiva = 1;
+
+function cambiarOpcionCalculadoraGam(opcion) {
+  calcGamOpcionActiva = opcion;
+  for (let i = 1; i <= 4; i++) {
+    const btn = document.getElementById(`btn-gam-opt-${i}`);
+    if (btn) {
+      btn.style.background = i === opcion ? 'rgba(245, 158, 11, 0.15)' : 'transparent';
+      btn.style.borderColor = i === opcion ? '#f59e0b' : '';
+    }
+  }
+  ejecutarCalculadoraGamPorOpcion();
+}
+
+function ejecutarCalculadoraGamPorOpcion() {
+  if (currentDist !== 'gamma') return;
+
+  const alphaRaw = document.getElementById('calc-gam-alpha').value;
+  const betaRaw = document.getElementById('calc-gam-beta').value;
+  const aRaw = document.getElementById('calc-gam-a').value;
+  const bRaw = document.getElementById('calc-gam-b').value;
+
+  if (alphaRaw === "" || betaRaw === "" || aRaw === "" || bRaw === "") return;
+
+  const alpha = parseFloat(alphaRaw);
+  const beta = parseFloat(betaRaw);
+  let a = Math.max(0, parseFloat(aRaw));
+  let b = Math.max(0, parseFloat(bRaw));
+
+  if (isNaN(alpha) || isNaN(beta) || isNaN(a) || isNaN(b) || alpha <= 0 || beta <= 0) return;
+  if (a < 0) a = 0; if (b < 0) b = 0;
+
+  const cdfA = gammaCDF(a, alpha, beta);
+  const cdfB = gammaCDF(b, alpha, beta);
+
+  let resultadoFinal = 0, labelTexto = "", tituloGrafico = "";
+  switch (calcGamOpcionActiva) {
+    case 1: resultadoFinal = cdfA; labelTexto = `P(X ≤ ${a}) =`; tituloGrafico = `Área Sombreada Izquierda hasta a = ${a}`; break;
+    case 2: resultadoFinal = 1 - cdfA; labelTexto = `P(X > ${a}) =`; tituloGrafico = `Área Sombreada Derecha desde a = ${a}`; break;
+    case 3: resultadoFinal = b >= a ? (cdfB - cdfA) : 0; labelTexto = b >= a ? `P(${a} ≤ X ≤ ${b}) =` : "Error: Límite 'a' debe ser ≤ 'b'"; tituloGrafico = b >= a ? `Área Central entre ${a} y ${b}` : "Error"; break;
+    case 4: resultadoFinal = 1 - (b >= a ? (cdfB - cdfA) : 0); labelTexto = b >= a ? `P(X < ${a} o X > ${b}) =` : "Error"; tituloGrafico = b >= a ? `Áreas Fuera de [${a}, ${b}]` : "Error"; break;
+  }
+
+  const labelEl = document.getElementById('res-gam-calc-label');
+  const valEl = document.getElementById('res-gam-calc-value');
+  const titleEl = document.getElementById('pdf-gam-graph-title');
+
+  if (labelEl) labelEl.textContent = labelTexto;
+  if (valEl) valEl.textContent = resultadoFinal.toFixed(6);
+  if (titleEl) titleEl.textContent = `Curva de Densidad Gamma (α=${alpha}, β=${beta}) — ${tituloGrafico}`;
+
+  drawCalcGammaPDF(alpha, beta, a, b);
+  drawCalcGammaCDF(alpha, beta, a, b);
+}
+
+function drawCalcGammaPDF(alpha, beta, a, b) {
+  const canvas = document.getElementById('calc-gam-pdf-canvas');
+  if (!canvas) return;
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr; canvas.height = 150 * dpr;
+  const ctx = canvas.getContext('2d'); ctx.scale(dpr, dpr);
+  const W = rect.width, H = 150;
+  const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+
+  const xMax = Math.max(a, b, (alpha / beta) * 3, 5) * 1.3;
+  const xMin = 0;
+  const tx = x => ((x - xMin) / (xMax - xMin)) * (W - 40) + 20;
+
+  let maxPdf = 0;
+  for (let x = 0.01; x <= xMax; x += 0.01) {
+    const y = gammaPDF(x, alpha, beta);
+    if (y > maxPdf) maxPdf = y;
+  }
+  if (maxPdf === 0) maxPdf = 0.5;
+  const ty = y => H - (y / (maxPdf * 1.2)) * (H - 30) - 20;
+
+  ctx.fillStyle = 'rgba(245, 158, 11, 0.25)';
+  const drawShaded = (start, end) => {
+    ctx.beginPath(); ctx.moveTo(tx(start), ty(0));
+    const step = (end - start) / 100;
+    for (let x = start; x <= end; x += step) ctx.lineTo(tx(x), ty(gammaPDF(x, alpha, beta)));
+    ctx.lineTo(tx(end), ty(0)); ctx.closePath(); ctx.fill();
+  };
+
+  if (calcGamOpcionActiva === 1) drawShaded(xMin, a);
+  else if (calcGamOpcionActiva === 2) drawShaded(a, xMax);
+  else if (calcGamOpcionActiva === 3 && b > a) drawShaded(a, b);
+  else if (calcGamOpcionActiva === 4) { drawShaded(xMin, a); if (b > a) drawShaded(b, xMax); }
+
+  ctx.beginPath();
+  for (let i = 0; i <= 200; i++) {
+    const x = xMin + (i / 200) * (xMax - xMin);
+    i === 0 ? ctx.moveTo(tx(x), ty(gammaPDF(x, alpha, beta))) : ctx.lineTo(tx(x), ty(gammaPDF(x, alpha, beta)));
+  }
+  ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 2; ctx.stroke();
+
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = '#ef4444'; ctx.beginPath(); ctx.moveTo(tx(a), ty(0)); ctx.lineTo(tx(a), ty(gammaPDF(a, alpha, beta))); ctx.stroke();
+  if ((calcGamOpcionActiva === 3 || calcGamOpcionActiva === 4) && b >= a) {
+    ctx.strokeStyle = '#ea580c'; ctx.beginPath(); ctx.moveTo(tx(b), ty(0)); ctx.lineTo(tx(b), ty(gammaPDF(b, alpha, beta))); ctx.stroke();
+  }
+  ctx.strokeStyle = isDark ? '#1e2d40' : '#cbd5e1'; ctx.beginPath(); ctx.moveTo(0, ty(0)); ctx.lineTo(W, ty(0)); ctx.stroke();
+}
+
+function drawCalcGammaCDF(alpha, beta, a, b) {
+  const canvas = document.getElementById('calc-gam-cdf-canvas');
+  if (!canvas) return;
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr; canvas.height = 150 * dpr;
+  const ctx = canvas.getContext('2d'); ctx.scale(dpr, dpr);
+  const W = rect.width, H = 150;
+  const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+
+  const xMax = Math.max(a, b, (alpha / beta) * 3, 5) * 1.3;
+  const xMin = 0;
+  const tx = x => ((x - xMin) / (xMax - xMin)) * (W - 40) + 20;
+  const ty = y => H - y * (H - 30) - 20;
+
+  ctx.beginPath();
+  for (let i = 0; i <= 200; i++) {
+    const x = xMin + (i / 200) * (xMax - xMin);
+    i === 0 ? ctx.moveTo(tx(x), ty(gammaCDF(x, alpha, beta))) : ctx.lineTo(tx(x), ty(gammaCDF(x, alpha, beta)));
   }
   ctx.strokeStyle = '#0ea5e9'; ctx.lineWidth = 2; ctx.stroke();
   ctx.strokeStyle = isDark ? '#1e2d40' : '#cbd5e1'; ctx.beginPath(); ctx.moveTo(0, ty(0)); ctx.lineTo(W, ty(0)); ctx.stroke();
@@ -872,7 +1551,9 @@ switchTab = function(tab) {
       'calc-poisson-content',
       'calc-uniforme-content',
       'calc-tstudent-content',
-      'calc-chicuadrado-content'
+      'calc-chicuadrado-content',
+      'calc-fisher-content',
+      'calc-gamma-content'
     ];
     
     contenidosCalculadoras.forEach(id => {
@@ -884,6 +1565,7 @@ switchTab = function(tab) {
     if (currentDist === 'normal') {
       document.getElementById('calc-normal-content').style.display = 'block';
       if (typeof ejecutarCalculadoraPorOpcion === 'function') ejecutarCalculadoraPorOpcion();
+      if (typeof ejecutarValorCriticoZ === 'function') ejecutarValorCriticoZ();
     } else if (currentDist === 'exponencial') {
       document.getElementById('calc-exponencial-content').style.display = 'block';
       if (typeof ejecutarCalculadoraExpPorOpcion === 'function') ejecutarCalculadoraExpPorOpcion();
@@ -898,11 +1580,25 @@ switchTab = function(tab) {
     } else if (currentDist === 'tstudent') {
       const tsContent = document.getElementById('calc-tstudent-content');
       if (tsContent) tsContent.style.display = 'block';
+      if (typeof generarTablaTStudent === 'function') generarTablaTStudent();
       if (typeof ejecutarCalculadoraTSPorOpcion === 'function') ejecutarCalculadoraTSPorOpcion();
+      if (typeof ejecutarValorCriticoTS === 'function') ejecutarValorCriticoTS();
     } else if (currentDist === 'chicuadrado') {
       const chiContent = document.getElementById('calc-chicuadrado-content');
       if (chiContent) chiContent.style.display = 'block';
+      if (typeof generarTablaChiCuadrado === 'function') generarTablaChiCuadrado();
       if (typeof cambiarOpcionCalculadoraChi === 'function') cambiarOpcionCalculadoraChi(1); // Enciende e inicializa la Chi-Cuadrado
+      if (typeof ejecutarValorCriticoChi === 'function') ejecutarValorCriticoChi();
+    } else if (currentDist === 'fisher') {
+      const fishContent = document.getElementById('calc-fisher-content');
+      if (fishContent) fishContent.style.display = 'block';
+      if (typeof generarTablaFisher === 'function') generarTablaFisher();
+      if (typeof ejecutarCalculadoraFishPorOpcion === 'function') ejecutarCalculadoraFishPorOpcion();
+      if (typeof ejecutarValorCriticoFish === 'function') ejecutarValorCriticoFish();
+    } else if (currentDist === 'gamma') {
+      const gamContent = document.getElementById('calc-gamma-content');
+      if (gamContent) gamContent.style.display = 'block';
+      if (typeof ejecutarCalculadoraGamPorOpcion === 'function') ejecutarCalculadoraGamPorOpcion();
     } else {
       if (warningEl) warningEl.style.display = 'block';
     }

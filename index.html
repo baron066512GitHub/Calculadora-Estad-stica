@@ -25,6 +25,8 @@
         <option value="uniforme">Distribución Uniforme</option>
         <option value="tstudent">Distribución t-Student</option>
         <option value="chicuadrado">Distribución Chi-Cuadrado</option>
+        <option value="fisher">Distribución F de Fisher</option>
+        <option value="gamma">Distribución Gamma</option>
       </select>
       <button class="btn-analysis" id="btn-toggle-analysis" onclick="toggleAnalysisMode()" title="Análisis de Datos Propios">📊 Analizar Datos</button>
       <button class="btn-theme" onclick="toggleTheme()" title="Cambiar tema">🌓</button>
@@ -479,6 +481,64 @@
       </div>
     </div>
 
+    <div id="formulas-fisher" class="dist-section">
+      <div class="card">
+        <div class="card-title">1. Modelo Teórico F de Fisher <span class="badge badge-green">Inferencia</span></div>
+        <div class="formula-block">
+          <div class="formula-name">Notación</div>
+          <div class="formula-main"><b>F ~ F(d₁, d₂)</b></div>
+          <div class="formula-desc">Modela la razón de dos varianzas muestrales independientes. Es fundamental para el análisis de varianza (ANOVA) y pruebas de igualdad de varianzas entre dos poblaciones.</div>
+        </div>
+        <div class="formula-block">
+          <div class="formula-name">Función de densidad de probabilidad (PDF)</div>
+          <div class="formula-main"><b>f(x)</b> = [ Γ((d₁+d₂)/2) / (Γ(d₁/2)·Γ(d₂/2)) ] · (d₁/d₂)<sup>d₁/2</sup> · x<sup>(d₁/2)−1</sup> / [ 1 + (d₁·x/d₂) ]<sup>(d₁+d₂)/2</sup></div>
+          <div class="formula-desc">Asimétrica positiva, definida para x > 0. Su forma depende de los grados de libertad del numerador (d₁) y del denominador (d₂).</div>
+          <div class="formula-vars">
+            <div class="var-row"><span class="var-sym">d₁</span><span class="var-def">Grados de libertad del numerador (n₁ - 1).</span></div>
+            <div class="var-row"><span class="var-sym">d₂</span><span class="var-def">Grados de libertad del denominador (n₂ - 1).</span></div>
+            <div class="var-row"><span class="var-sym">Γ(n)</span><span class="var-def">Función Gamma de Euler.</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">2. Teorema de Composición Estocástica <span class="badge badge-blue">Deducción</span></div>
+        <div class="formula-block blue">
+          <div class="formula-name">Relación Estructural Fundamental</div>
+          <div class="formula-main"><b>F = (𝒳²₁ / d₁) / (𝒳²₂ / d₂)</b></div>
+          <div class="formula-desc">Una variable F se define como el cociente de dos variables Chi-Cuadrado independientes, cada una dividida por sus respectivos grados de libertad. Este es el algoritmo exacto implementado en el motor de simulación.</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="formulas-gamma" class="dist-section">
+      <div class="card">
+        <div class="card-title">1. Modelo Teórico Gamma <span class="badge badge-amber">Modelo</span></div>
+        <div class="formula-block amber">
+          <div class="formula-name">Notación</div>
+          <div class="formula-main"><b>X ~ Gamma(α, β)</b></div>
+          <div class="formula-desc">Modela el tiempo de espera hasta que ocurran α eventos en un proceso de Poisson con tasa β. Generaliza la distribución Exponencial (cuando α = 1).</div>
+        </div>
+        <div class="formula-block amber">
+          <div class="formula-name">Función de densidad de probabilidad (PDF)</div>
+          <div class="formula-main"><b>f(x)</b> = [ β<sup>α</sup> / Γ(α) ] · x<sup>α−1</sup> · e<sup>−β·x</sup></div>
+          <div class="formula-desc">Asimétrica positiva, definida para x > 0. La forma depende del parámetro de forma α y la escala del parámetro de tasa β.</div>
+          <div class="formula-vars">
+            <div class="var-row"><span class="var-sym">α</span><span class="var-def">Parámetro de forma (α > 0). Controla la asimetría de la curva.</span></div>
+            <div class="var-row"><span class="var-sym">β</span><span class="var-def">Parámetro de tasa (β > 0). Controla la escala horizontal.</span></div>
+            <div class="var-row"><span class="var-sym">Γ(α)</span><span class="var-def">Función Gamma de Euler = ∫₀ⁿ xⁿ⁻¹e⁻ˣdx.</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">2. Teorema de Composición Estocástica <span class="badge badge-blue">Deducción</span></div>
+        <div class="formula-block blue">
+          <div class="formula-name">Relación Estructural Fundamental</div>
+          <div class="formula-main"><b>X = Σ E<sub>i</sub></b> &nbsp;&nbsp;(desde i=1 hasta α, con E<sub>i</sub> ~ Exp(β))</div>
+          <div class="formula-desc">Una variable Gamma(α, β) con α entero se define como la suma de α variables Exponenciales independientes con tasa β. Para α no entero se usa el algoritmo de Marsaglia-Tsang. Este es el método implementado en el motor de simulación.</div>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <div id="view-sim" style="display:none;">
@@ -510,6 +570,16 @@
 
       <div id="inputs-chicuadrado" class="dist-section">
         <div><label>Grados de Libertad (ν)</label><input type="number" id="chi-df" value="5" min="1" step="1" oninput="updateCalculatedValues()"></div>
+      </div>
+
+      <div id="inputs-fisher" class="grid2 dist-section">
+        <div><label>Grados de Libertad Numerador (d₁)</label><input type="number" id="fish-d1" value="5" min="1" step="1" oninput="updateCalculatedValues()"></div>
+        <div><label>Grados de Libertad Denominador (d₂)</label><input type="number" id="fish-d2" value="10" min="1" step="1" oninput="updateCalculatedValues()"></div>
+      </div>
+
+      <div id="inputs-gamma" class="grid2 dist-section">
+        <div><label>Parámetro de Forma (α)</label><input type="number" id="gam-alpha" value="2" min="0.1" step="0.1" oninput="updateCalculatedValues()"></div>
+        <div><label>Parámetro de Tasa (β)</label><input type="number" id="gam-beta" value="1" min="0.1" step="0.1" oninput="updateCalculatedValues()"></div>
       </div>
 
       <div style="margin-top:10px;">
@@ -653,6 +723,42 @@
         <div class="card">
           <div class="card-title">Curva de Distribución Acumulada (CDF)</div>
           <canvas id="calc-cdf-canvas" style="height:150px;"></canvas>
+        </div>
+      </div>
+
+      <div class="card" style="border-left: 4px solid #00d4aa; margin-top: 15px;">
+        <div class="card-title">📖 Evaluación del Valor Crítico Z<sub>α/2</sub> (Intervalos de Confianza)</div>
+        <div class="formula-desc" style="margin-bottom: 12px;">
+          Encuentra el valor crítico <b>Z<sub>α/2</sub></b> de la distribución normal estándar a partir del nivel de confianza. Para un nivel de confianza del <b>95%</b>, α = 0.05, α/2 = 0.025, y se busca el área acumulada <b>1 − α/2 = 0.975</b> en la tabla Z, lo que da <b>Z = 1.96</b>.
+        </div>
+        <div class="grid2" style="margin-bottom: 12px;">
+          <div>
+            <label>Nivel de Confianza</label>
+            <select id="calc-z-conf" onchange="zConfSelChange()" style="width:100%;">
+              <option value="0.90">90% (α = 0.10)</option>
+              <option value="0.95" selected>95% (α = 0.05)</option>
+              <option value="0.99">99% (α = 0.01)</option>
+              <option value="custom">Personalizado...</option>
+            </select>
+          </div>
+          <div id="calc-z-conf-custom-container" style="display:none;">
+            <label>Nivel de Confianza Personalizado</label>
+            <input type="number" id="calc-z-conf-custom" value="0.95" min="0.1" max="0.999" step="0.01" oninput="ejecutarValorCriticoZ()">
+          </div>
+        </div>
+        <div class="formula-desc" style="margin-bottom: 10px; background: var(--formula-bg); padding: 10px; border-radius: 8px; line-height:2;">
+          <b>Paso 1:</b> α = 1 − Confianza = <span id="z-calc-alpha" style="color:#f59e0b;font-family:monospace;">0.0500</span><br>
+          <b>Paso 2:</b> α/2 = <span id="z-calc-half" style="color:#f59e0b;font-family:monospace;">0.0250</span><br>
+          <b>Paso 3:</b> Área acumulada = 1 − α/2 = <span id="z-calc-area" style="color:#0ea5e9;font-family:monospace;">0.9750</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; background: var(--formula-bg); padding: 12px; border-radius: 8px;">
+          <div id="res-z-crit-label" style="font-size: 14px; font-weight: 600; color: var(--text-desc);">Z<sub>α/2</sub> =</div>
+          <div id="res-z-crit-value" style="font-family: monospace; color: #00d4aa; font-weight: 700; font-size: 18px;">1.9600</div>
+        </div>
+        <div id="res-z-crit-desc" style="margin-top: 8px; font-size: 12px; color: var(--text-muted); text-align: center;"></div>
+        <div class="card" style="margin-top: 12px;">
+          <div class="card-title">Curva Normal Estándar — Área Sombreada</div>
+          <canvas id="calc-z-crit-canvas" style="height:150px;"></canvas>
         </div>
       </div>
     </div>
@@ -852,6 +958,62 @@
           <canvas id="calc-ts-cdf-canvas" style="height:150px;"></canvas>
         </div>
       </div>
+
+      <div class="card" style="border-left: 4px solid #a78bfa; margin-top: 15px;">
+        <div class="card-title">📖 Evaluación del Valor Crítico t (Tabla t-Student)</div>
+        <div class="formula-desc" style="margin-bottom: 12px;">
+          Encuentra el valor crítico <b>t<sub>α,ν</sub></b> tal que el área de la cola sea igual a <b>α</b>, tal como se lee en las tablas de la distribución t-Student.
+        </div>
+        <div class="grid2" style="margin-bottom: 12px;">
+          <div>
+            <label>Grados de Libertad (ν)</label>
+            <input type="number" id="calc-ts-crit-df" value="5" min="1" step="1" oninput="ejecutarValorCriticoTS()">
+          </div>
+          <div>
+            <label>Valor de Cola (α)</label>
+            <input type="number" id="calc-ts-crit-alpha" value="0.05" min="0.0001" max="0.5" step="0.005" oninput="ejecutarValorCriticoTS()">
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; margin-top: 12px;">
+          <button class="btn-outline" id="btn-ts-crit-1" onclick="cambiarOpcionCriticaTS(1)" style="margin:0;">Cola Derecha (α)</button>
+          <button class="btn-outline" id="btn-ts-crit-2" onclick="cambiarOpcionCriticaTS(2)" style="margin:0;">Cola Izquierda (α)</button>
+          <button class="btn-outline" id="btn-ts-crit-3" onclick="cambiarOpcionCriticaTS(3)" style="margin:0;">Dos Colas (α/2)</button>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; background: var(--formula-bg); padding: 12px; border-radius: 8px;">
+          <div id="res-ts-crit-label" style="font-size: 14px; font-weight: 600; color: var(--text-desc);">t<sub>0.05, 5</sub> =</div>
+          <div id="res-ts-crit-value" style="font-family: monospace; color: #a78bfa; font-weight: 700; font-size: 18px;">-</div>
+        </div>
+        <div id="res-ts-crit-desc" style="margin-top: 8px; font-size: 12px; color: var(--text-muted); text-align: center;"></div>
+      </div>
+
+      <div class="card" style="border-left: 4px solid #a78bfa; margin-top: 15px;">
+        <div class="card-title">📋 Tabla de Valores Críticos t-Student (Verificación Manual)</div>
+        <div class="formula-desc" style="margin-bottom: 12px;">
+          Tabla estándar de la distribución t-Student. Cada columna representa un valor de <b>α</b> (área de la cola derecha). La fila resaltada corresponde a los grados de libertad seleccionados arriba.
+        </div>
+        <div class="tbl-wrap" style="max-height: 400px; overflow-y: auto;">
+          <table id="ts-crit-table" style="font-size: 12px;">
+            <thead>
+              <tr>
+                <th>ν</th>
+                <th>α = 0.45</th>
+                <th>α = 0.40</th>
+                <th>α = 0.35</th>
+                <th>α = 0.30</th>
+                <th>α = 0.25</th>
+                <th>α = 0.20</th>
+                <th>α = 0.15</th>
+                <th>α = 0.10</th>
+                <th>α = 0.05</th>
+                <th>α = 0.025</th>
+                <th>α = 0.01</th>
+                <th>α = 0.005</th>
+              </tr>
+            </thead>
+            <tbody id="ts-crit-table-body"></tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
     <div id="calc-chicuadrado-content" style="display:none;">
@@ -899,6 +1061,228 @@
         <div class="card">
           <div class="card-title">Distribución Acumulada Continua (CDF)</div>
           <canvas id="calc-chi-cdf-canvas" style="height:150px;"></canvas>
+        </div>
+      </div>
+
+      <div class="card" style="border-left: 4px solid #0ea5e9; margin-top: 15px;">
+        <div class="card-title">📖 Evaluación del Valor Crítico 𝒳² (Tabla Chi-Cuadrado)</div>
+        <div class="formula-desc" style="margin-bottom: 12px;">
+          Encuentra el valor crítico <b>𝒳²<sub>α,ν</sub></b> tal que el área de la cola sea igual a <b>α</b>, tal como se lee en las tablas de la distribución Chi-Cuadrado.
+        </div>
+        <div class="grid2" style="margin-bottom: 12px;">
+          <div>
+            <label>Grados de Libertad (ν)</label>
+            <input type="number" id="calc-chi-crit-df" value="5" min="1" step="1" oninput="ejecutarValorCriticoChi()">
+          </div>
+          <div>
+            <label>Valor de Cola (α)</label>
+            <input type="number" id="calc-chi-crit-alpha" value="0.05" min="0.0001" max="0.5" step="0.005" oninput="ejecutarValorCriticoChi()">
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; margin-top: 12px;">
+          <button class="btn-outline" id="btn-chi-crit-1" onclick="cambiarOpcionCriticaChi(1)" style="margin:0;">Cola Derecha (α)</button>
+          <button class="btn-outline" id="btn-chi-crit-2" onclick="cambiarOpcionCriticaChi(2)" style="margin:0;">Cola Izquierda (α)</button>
+          <button class="btn-outline" id="btn-chi-crit-3" onclick="cambiarOpcionCriticaChi(3)" style="margin:0;">Dos Colas (α/2)</button>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; background: var(--formula-bg); padding: 12px; border-radius: 8px;">
+          <div id="res-chi-crit-label" style="font-size: 14px; font-weight: 600; color: var(--text-desc);">𝒳²<sub>0.05, 5</sub> =</div>
+          <div id="res-chi-crit-value" style="font-family: monospace; color: #0ea5e9; font-weight: 700; font-size: 18px;">-</div>
+        </div>
+        <div id="res-chi-crit-desc" style="margin-top: 8px; font-size: 12px; color: var(--text-muted); text-align: center;"></div>
+      </div>
+
+      <div class="card" style="border-left: 4px solid #0ea5e9; margin-top: 15px;">
+        <div class="card-title">📋 Tabla de Valores Críticos Chi-Cuadrado (Verificación Manual)</div>
+        <div class="formula-desc" style="margin-bottom: 12px;">
+          Tabla estándar de la distribución Chi-Cuadrado. Cada columna representa un valor de <b>α</b> (área de la cola derecha). La fila resaltada corresponde a los grados de libertad seleccionados arriba.
+        </div>
+        <div class="tbl-wrap" style="max-height: 400px; overflow-y: auto;">
+          <table id="chi-crit-table" style="font-size: 12px;">
+            <thead>
+              <tr>
+                <th>ν</th>
+                <th>α = 0.995</th>
+                <th>α = 0.990</th>
+                <th>α = 0.975</th>
+                <th>α = 0.950</th>
+                <th>α = 0.900</th>
+                <th>α = 0.750</th>
+                <th>α = 0.500</th>
+                <th>α = 0.250</th>
+                <th>α = 0.100</th>
+                <th>α = 0.050</th>
+                <th>α = 0.025</th>
+                <th>α = 0.010</th>
+                <th>α = 0.005</th>
+                <th>α = 0.001</th>
+              </tr>
+            </thead>
+            <tbody id="chi-crit-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div id="calc-fisher-content" style="display:none;">
+      <div class="card">
+        <div class="card-title">Parámetros de la Distribución F de Fisher</div>
+        <div class="grid2">
+          <div><label>Grados de Libertad Numerador (d₁)</label><input type="number" id="calc-fish-d1" value="5" min="1" step="1" oninput="ejecutarCalculadoraFishPorOpcion()"></div>
+          <div><label>Grados de Libertad Denominador (d₂)</label><input type="number" id="calc-fish-d2" value="10" min="1" step="1" oninput="ejecutarCalculadoraFishPorOpcion()"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Selecciona la Probabilidad a Calcular (Valores ≥ 0)</div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <input type="number" id="calc-fish-a" value="1.5" step="0.1" min="0" style="width:100px;" oninput="ejecutarCalculadoraFishPorOpcion()">
+            <label style="margin:0;">Valor crítico límite (a)</label>
+          </div>
+          <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 8px;">
+            <input type="number" id="calc-fish-b" value="3.5" step="0.1" min="0" style="width:100px;" oninput="ejecutarCalculadoraFishPorOpcion()">
+            <label style="margin:0;">Valor crítico límite (b)</label>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; margin-top: 12px;">
+          <button class="btn-outline" id="btn-fish-opt-1" onclick="cambiarOpcionCalculadoraFish(1)" style="margin:0;">Calcular P(F ≤ a)</button>
+          <button class="btn-outline" id="btn-fish-opt-2" onclick="cambiarOpcionCalculadoraFish(2)" style="margin:0;">Calcular P(F > a)</button>
+          <button class="btn-outline" id="btn-fish-opt-3" onclick="cambiarOpcionCalculadoraFish(3)" style="margin:0;">Calcular P(a ≤ F ≤ b)</button>
+          <button class="btn-outline" id="btn-fish-opt-4" onclick="cambiarOpcionCalculadoraFish(4)" style="margin:0;">Calcular P(F < a o F > b)</button>
+        </div>
+      </div>
+
+      <div class="card" style="border-left: 4px solid #22c55e;">
+        <div class="card-title">Resultado de Probabilidad Obtenido</div>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div id="res-fish-calc-label" style="font-size: 14px; font-weight: 600; color: var(--text-desc);">P(F ≤ a) =</div>
+          <div id="res-fish-calc-value" style="font-family: monospace; color: #22c55e; font-weight: 700; font-size: 18px;">-</div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="card">
+          <div class="card-title" id="pdf-fish-graph-title">Curva de Densidad F (PDF)</div>
+          <canvas id="calc-fish-pdf-canvas" style="height:150px;"></canvas>
+        </div>
+        <div class="card">
+          <div class="card-title">Distribución Acumulada Continua (CDF)</div>
+          <canvas id="calc-fish-cdf-canvas" style="height:150px;"></canvas>
+        </div>
+      </div>
+
+      <div class="card" style="border-left: 4px solid #22c55e; margin-top: 15px;">
+        <div class="card-title">📖 Evaluación del Valor Crítico F (Tabla F de Fisher)</div>
+        <div class="formula-desc" style="margin-bottom: 12px;">
+          Encuentra el valor crítico <b>F<sub>α,d₁,d₂</sub></b> tal que el área de la cola sea igual a <b>α</b>, tal como se lee en las tablas de la distribución F de Fisher.
+        </div>
+        <div class="grid2" style="margin-bottom: 12px;">
+          <div>
+            <label>Grados de Libertad Numerador (d₁)</label>
+            <input type="number" id="calc-fish-crit-d1" value="5" min="1" step="1" oninput="ejecutarValorCriticoFish()">
+          </div>
+          <div>
+            <label>Grados de Libertad Denominador (d₂)</label>
+            <input type="number" id="calc-fish-crit-d2" value="10" min="1" step="1" oninput="ejecutarValorCriticoFish()">
+          </div>
+        </div>
+        <div class="grid2" style="margin-bottom: 12px;">
+          <div>
+            <label>Valor de Cola (α)</label>
+            <input type="number" id="calc-fish-crit-alpha" value="0.05" min="0.0001" max="0.5" step="0.005" oninput="ejecutarValorCriticoFish()">
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; margin-top: 12px;">
+          <button class="btn-outline" id="btn-fish-crit-1" onclick="cambiarOpcionCriticaFish(1)" style="margin:0;">Cola Derecha (α)</button>
+          <button class="btn-outline" id="btn-fish-crit-2" onclick="cambiarOpcionCriticaFish(2)" style="margin:0;">Cola Izquierda (α)</button>
+          <button class="btn-outline" id="btn-fish-crit-3" onclick="cambiarOpcionCriticaFish(3)" style="margin:0;">Dos Colas (α/2)</button>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; background: var(--formula-bg); padding: 12px; border-radius: 8px;">
+          <div id="res-fish-crit-label" style="font-size: 14px; font-weight: 600; color: var(--text-desc);">F<sub>0.05, 5, 10</sub> =</div>
+          <div id="res-fish-crit-value" style="font-family: monospace; color: #22c55e; font-weight: 700; font-size: 18px;">-</div>
+        </div>
+        <div id="res-fish-crit-desc" style="margin-top: 8px; font-size: 12px; color: var(--text-muted); text-align: center;"></div>
+      </div>
+
+      <div class="card" style="border-left: 4px solid #22c55e; margin-top: 15px;">
+        <div class="card-title">📋 Tabla de Valores Críticos F de Fisher (Verificación Manual)</div>
+        <div class="formula-desc" style="margin-bottom: 12px;">
+          Tabla estándar de la distribución F de Fisher para α = 0.05. Las filas representan d₁ (numerador) y las columnas d₂ (denominador). La celda resaltada corresponde a los grados de libertad seleccionados arriba.
+        </div>
+        <div class="tbl-wrap" style="max-height: 400px; overflow-y: auto;">
+          <table id="fish-crit-table" style="font-size: 12px;">
+            <thead>
+              <tr>
+                <th>d₁ \ d₂</th>
+                <th>1</th>
+                <th>2</th>
+                <th>3</th>
+                <th>4</th>
+                <th>5</th>
+                <th>6</th>
+                <th>7</th>
+                <th>8</th>
+                <th>9</th>
+                <th>10</th>
+                <th>12</th>
+                <th>15</th>
+                <th>20</th>
+                <th>30</th>
+              </tr>
+            </thead>
+            <tbody id="fish-crit-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div id="calc-gamma-content" style="display:none;">
+      <div class="card">
+        <div class="card-title">Parámetros de la Distribución Gamma</div>
+        <div class="grid2">
+          <div><label>Parámetro de Forma (α)</label><input type="number" id="calc-gam-alpha" value="2" min="0.1" step="0.1" oninput="ejecutarCalculadoraGamPorOpcion()"></div>
+          <div><label>Parámetro de Tasa (β)</label><input type="number" id="calc-gam-beta" value="1" min="0.1" step="0.1" oninput="ejecutarCalculadoraGamPorOpcion()"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Selecciona la Probabilidad a Calcular (Valores ≥ 0)</div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <input type="number" id="calc-gam-a" value="1.5" step="0.1" min="0" style="width:100px;" oninput="ejecutarCalculadoraGamPorOpcion()">
+            <label style="margin:0;">Valor crítico límite (a)</label>
+          </div>
+          <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 8px;">
+            <input type="number" id="calc-gam-b" value="3.5" step="0.1" min="0" style="width:100px;" oninput="ejecutarCalculadoraGamPorOpcion()">
+            <label style="margin:0;">Valor crítico límite (b)</label>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; margin-top: 12px;">
+          <button class="btn-outline" id="btn-gam-opt-1" onclick="cambiarOpcionCalculadoraGam(1)" style="margin:0;">Calcular P(X ≤ a)</button>
+          <button class="btn-outline" id="btn-gam-opt-2" onclick="cambiarOpcionCalculadoraGam(2)" style="margin:0;">Calcular P(X > a)</button>
+          <button class="btn-outline" id="btn-gam-opt-3" onclick="cambiarOpcionCalculadoraGam(3)" style="margin:0;">Calcular P(a ≤ X ≤ b)</button>
+          <button class="btn-outline" id="btn-gam-opt-4" onclick="cambiarOpcionCalculadoraGam(4)" style="margin:0;">Calcular P(X < a o X > b)</button>
+        </div>
+      </div>
+
+      <div class="card" style="border-left: 4px solid #f59e0b;">
+        <div class="card-title">Resultado de Probabilidad Obtenido</div>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div id="res-gam-calc-label" style="font-size: 14px; font-weight: 600; color: var(--text-desc);">P(X ≤ a) =</div>
+          <div id="res-gam-calc-value" style="font-family: monospace; color: #f59e0b; font-weight: 700; font-size: 18px;">-</div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="card">
+          <div class="card-title" id="pdf-gam-graph-title">Curva de Densidad Gamma (PDF)</div>
+          <canvas id="calc-gam-pdf-canvas" style="height:150px;"></canvas>
+        </div>
+        <div class="card">
+          <div class="card-title">Distribución Acumulada Continua (CDF)</div>
+          <canvas id="calc-gam-cdf-canvas" style="height:150px;"></canvas>
         </div>
       </div>
     </div>

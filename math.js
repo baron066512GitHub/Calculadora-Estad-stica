@@ -110,6 +110,38 @@ function tStudentCDF(t, df) {
   return 0.5 + (sum * h / 3);
 }
 
+// Función Cuantil (Inversa de la CDF) de t-Student — Búsqueda por Bisección
+// Devuelve el valor t tal que P(T ≤ t) = p, para los grados de libertad dados.
+function invTStudentCDF(p, df) {
+  if (p <= 0) return -Infinity;
+  if (p >= 1) return Infinity;
+  if (p === 0.5) return 0;
+
+  // Aproximación inicial usando la normal estándar (válida para df grandes)
+  let low = -10, high = 10;
+  const tolerance = 1e-8;
+  const maxIter = 200;
+
+  // Ajustamos el rango de búsqueda según la probabilidad
+  if (p < 0.5) {
+    low = -10;
+    high = 0;
+  } else {
+    low = 0;
+    high = 10;
+  }
+
+  // Bisección para encontrar la raíz de tStudentCDF(t, df) - p = 0
+  for (let i = 0; i < maxIter; i++) {
+    const mid = (low + high) / 2;
+    const cdfMid = tStudentCDF(mid, df);
+    if (Math.abs(cdfMid - p) < tolerance) return mid;
+    if (cdfMid < p) low = mid;
+    else high = mid;
+  }
+  return (low + high) / 2;
+}
+
 // Generador de variables aleatorias t-Student (Método de composición analítica)
 function generarTStudent(df) {
   // Generamos una variable Normal Estándar Z usando Box-Muller directo
@@ -168,4 +200,156 @@ function generarChiCuadrado(df) {
     chi2 += z * z;
   }
   return chi2;
+}
+
+// Función Cuantil (Inversa de la CDF) de Chi-Cuadrado — Búsqueda por Bisección
+// Devuelve el valor x tal que P(𝒳² ≤ x) = p, para los grados de libertad dados.
+function invChiCuadradoCDF(p, df) {
+  if (p <= 0) return 0;
+  if (p >= 1) return Infinity;
+
+  let low = 0, high = df + 4 * Math.sqrt(2 * df) + 20;
+  const tolerance = 1e-8;
+  const maxIter = 200;
+
+  // Bisección para encontrar la raíz de chiCuadradoCDF(x, df) - p = 0
+  for (let i = 0; i < maxIter; i++) {
+    const mid = (low + high) / 2;
+    const cdfMid = chiCuadradoCDF(mid, df);
+    if (Math.abs(cdfMid - p) < tolerance) return mid;
+    if (cdfMid < p) low = mid;
+    else high = mid;
+  }
+  return (low + high) / 2;
+}
+
+// =====================================================================
+// --- LÓGICA F DE FISHER ---
+// =====================================================================
+
+// Función de Densidad de Probabilidad (PDF) de F de Fisher
+function fisherPDF(x, d1, d2) {
+  if (x <= 0) return 0;
+  const num = gamma((d1 + d2) / 2) * Math.pow(d1 / d2, d1 / 2) * Math.pow(x, (d1 / 2) - 1);
+  const den = gamma(d1 / 2) * gamma(d2 / 2) * Math.pow(1 + (d1 * x / d2), (d1 + d2) / 2);
+  return num / den;
+}
+
+// Función de Distribución Acumulada (CDF) de F de Fisher mediante regla de Simpson
+function fisherCDF(x, d1, d2) {
+  if (x <= 0) return 0;
+  let sum = 0;
+  const steps = 200;
+  const h = x / steps;
+  for (let i = 0; i <= steps; i++) {
+    const t = i * h;
+    const ft = fisherPDF(t, d1, d2);
+    if (i === 0 || i === steps) sum += ft;
+    else if (i % 2 === 1) sum += 4 * ft;
+    else sum += 2 * ft;
+  }
+  return (sum * h) / 3;
+}
+
+// Función Cuantil (Inversa de la CDF) de F de Fisher — Búsqueda por Bisección
+function invFisherCDF(p, d1, d2) {
+  if (p <= 0) return 0;
+  if (p >= 1) return Infinity;
+
+  let low = 0, high = 50;
+  const tolerance = 1e-8;
+  const maxIter = 200;
+
+  for (let i = 0; i < maxIter; i++) {
+    const mid = (low + high) / 2;
+    const cdfMid = fisherCDF(mid, d1, d2);
+    if (Math.abs(cdfMid - p) < tolerance) return mid;
+    if (cdfMid < p) low = mid;
+    else high = mid;
+  }
+  return (low + high) / 2;
+}
+
+// Generador de variables aleatorias F de Fisher (Método: cociente de Chi-Cuadradas)
+function generarFisher(d1, d2) {
+  const chi1 = generarChiCuadrado(d1);
+  const chi2 = generarChiCuadrado(d2);
+  return (chi1 / d1) / (chi2 / d2);
+}
+
+// =====================================================================
+// --- LÓGICA GAMMA ---
+// =====================================================================
+
+// Función de Densidad de Probabilidad (PDF) de Gamma
+function gammaPDF(x, alpha, beta) {
+  if (x <= 0) return 0;
+  return (Math.pow(beta, alpha) / gamma(alpha)) * Math.pow(x, alpha - 1) * Math.exp(-beta * x);
+}
+
+// Función de Distribución Acumulada (CDF) de Gamma mediante regla de Simpson
+function gammaCDF(x, alpha, beta) {
+  if (x <= 0) return 0;
+  let sum = 0;
+  const steps = 200;
+  const h = x / steps;
+  for (let i = 0; i <= steps; i++) {
+    const t = i * h;
+    const ft = gammaPDF(t, alpha, beta);
+    if (i === 0 || i === steps) sum += ft;
+    else if (i % 2 === 1) sum += 4 * ft;
+    else sum += 2 * ft;
+  }
+  return (sum * h) / 3;
+}
+
+// Función Cuantil (Inversa de la CDF) de Gamma — Búsqueda por Bisección
+function invGammaCDF(p, alpha, beta) {
+  if (p <= 0) return 0;
+  if (p >= 1) return Infinity;
+
+  let low = 0, high = (alpha / beta) * 4 + 10;
+  const tolerance = 1e-8;
+  const maxIter = 200;
+
+  for (let i = 0; i < maxIter; i++) {
+    const mid = (low + high) / 2;
+    const cdfMid = gammaCDF(mid, alpha, beta);
+    if (Math.abs(cdfMid - p) < tolerance) return mid;
+    if (cdfMid < p) low = mid;
+    else high = mid;
+  }
+  return (low + high) / 2;
+}
+
+// Generador de variables aleatorias Gamma (Método: suma de Exponenciales para α entero, Marsaglia-Tsang para α no entero)
+function generarGamma(alpha, beta) {
+  if (alpha < 1) {
+    // Marsaglia-Tsang para α < 1
+    const d = alpha + 1/3;
+    const c = 1 / Math.sqrt(9 * d);
+    while (true) {
+      const u1 = Math.random();
+      const u2 = Math.random();
+      const v = (1 - 1e-10) * u1;
+      const z = Math.tan(Math.PI * v);
+      const x = d * (1 + c * z);
+      if (x <= 0) continue;
+      const v2 = u2 * Math.pow(1 + c * z, 2) * Math.exp(d * z - x + d);
+      if (v2 <= 1) return x / beta;
+    }
+  } else {
+    // Para α ≥ 1: suma de Exponenciales
+    let sum = 0;
+    const n = Math.floor(alpha);
+    for (let i = 0; i < n; i++) {
+      sum += -Math.log(Math.random()) / beta;
+    }
+    // Ajuste para la parte fraccionaria
+    const frac = alpha - n;
+    if (frac > 0) {
+      sum += generarGamma(frac, beta);
+    }
+    return sum;
+  }
 }

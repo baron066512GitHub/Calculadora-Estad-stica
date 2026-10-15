@@ -554,3 +554,321 @@ canvas {
     margin: 4px 0;
   }
 }
+
+/* ===================================================================== */
+/* --- ESTILOS SECCIÓN ANOVA Y METODOLOGÍA DE LOS 8 PASOS --- */
+/* ===================================================================== */
+
+.anova-subtabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.anova-subtab-btn {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+
+.anova-subtab-btn:hover {
+  border-color: #00d4aa;
+  color: #00d4aa;
+}
+
+.anova-subtab-btn.active {
+  background: rgba(0, 212, 170, 0.15);
+  border-color: #00d4aa;
+  color: #00d4aa;
+}
+
+.anova-action-bar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 12px 0;
+}
+
+.anova-btn-sm {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+
+.anova-btn-sm:hover {
+  border-color: #0ea5e9;
+  color: #0ea5e9;
+}
+
+.group-item-card {
+  background: var(--formula-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 10px;
+  transition: border-color 0.2s;
+}
+
+.group-item-card:hover {
+  border-color: rgba(14, 165, 233, 0.5);
+}
+
+.group-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  gap: 8px;
+}
+
+.group-item-title {
+  background: transparent;
+  border: none;
+  border-bottom: 1px dashed var(--border-color);
+  color: #00d4aa;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 2px 4px;
+  outline: none;
+}
+
+.group-item-title:focus {
+  border-bottom-color: #00d4aa;
+}
+
+.group-stat-pills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.group-stat-pill {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 5px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-family: monospace;
+  color: var(--text-desc);
+}
+
+.group-stat-pill b {
+  color: #0ea5e9;
+}
+
+.btn-del-group {
+  background: transparent;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #ef4444;
+  padding: 3px 8px;
+  border-radius: 5px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-del-group:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+/* Pasos Metodológicos */
+.step-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.step-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 14px 16px;
+  border-left: 4px solid #0ea5e9;
+}
+
+.step-card.step-green  { border-left-color: #00d4aa; }
+.step-card.step-amber  { border-left-color: #f59e0b; }
+.step-card.step-purple { border-left-color: #a78bfa; }
+.step-card.step-red    { border-left-color: #ef4444; }
+
+.step-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.step-badge {
+  background: rgba(14, 165, 233, 0.2);
+  color: #0ea5e9;
+  font-weight: 700;
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.step-badge.badge-green { background: rgba(0, 212, 170, 0.2); color: #00d4aa; }
+.step-badge.badge-amber { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+.step-badge.badge-purple{ background: rgba(167, 139, 250, 0.2); color: #a78bfa; }
+.step-badge.badge-red   { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+
+.step-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.step-body {
+  font-size: 13px;
+  color: var(--text-desc);
+  line-height: 1.6;
+}
+
+.step-math-box {
+  background: var(--formula-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin: 8px 0;
+  font-family: Georgia, serif;
+  font-size: 15px;
+  color: var(--text-main);
+  overflow-x: auto;
+}
+
+.step-calc-details {
+  background: var(--formula-bg);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin: 10px 0;
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--text-main);
+  overflow-x: auto;
+}
+
+.step-calc-details b {
+  color: #00d4aa;
+}
+
+/* Tarjeta de Conclusiones Finales (Paso 8) */
+.decision-alert {
+  border-radius: 10px;
+  padding: 16px;
+  margin-top: 10px;
+  border-width: 1px;
+  border-style: solid;
+}
+
+.decision-alert.rejected {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.decision-alert.rejected .decision-title {
+  color: #ef4444;
+}
+
+.decision-alert.not-rejected {
+  background: rgba(0, 212, 170, 0.1);
+  border-color: rgba(0, 212, 170, 0.4);
+}
+
+.decision-alert.not-rejected .decision-title {
+  color: #00d4aa;
+}
+
+.decision-title {
+  font-size: 16px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.decision-text {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-main);
+}
+
+.decision-stats-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.decision-stat-item {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.decision-stat-item span {
+  font-weight: 700;
+  color: var(--text-main);
+  font-family: monospace;
+}
+
+/* Tablas Específicas de ANOVA */
+.anova-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin: 8px 0;
+}
+
+.anova-table th {
+  background: var(--formula-bg);
+  color: var(--text-muted);
+  padding: 8px 10px;
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border-color);
+  text-align: center;
+}
+
+.anova-table td {
+  padding: 8px 10px;
+  text-align: center;
+  font-family: monospace;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-main);
+}
+
+.anova-table tr:hover td {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.anova-table tfoot td {
+  font-weight: 700;
+  background: rgba(0, 212, 170, 0.05);
+}

@@ -39,6 +39,7 @@
     <button class="tab" id="tab-btn-calc" onclick="switchTab('calc')">📊 Calculadora P</button> 
     <button class="tab" id="tab-btn-autolavado" onclick="switchTab('autolavado')">🚗 Autolavado</button>
     <button class="tab" id="tab-btn-form-est" onclick="switchTab('form-est')">📘 Fórmulas Descriptiva</button>
+    <button class="tab" id="tab-btn-anova" onclick="switchTab('anova')">🧪 ANOVA</button>
   </div>
 
   <div id="view-formulas">
@@ -1749,7 +1750,7 @@
       
       <div class="formula-block amber">
         <div class="formula-name">IC para el Cociente de Varianzas (F de Fisher)</div>
-        <div class="formula-main">(s<sub>A</sub>²/s<sub>B</sub>²) · (1/F<sub>α/2, v<sub>2</sub>, v<sub>1</sub></sub>) ≤ σ<sub>A</sub>²/σ<sub>B</sub>² ≤ (s<sub>A</sub>²/s<sub>B</sub>²) · F<sub>α/2, v<sub>1</sub>, v<sub>2</sub></div>
+        <div class="formula-main">(s<sub>A</sub>²/s<sub>B</sub>²) · (1/F<sub>α/2, v<sub>2</sub>, v<sub>1</sub></sub>) ≤ σ<sub>A</sub>²/σ<sub>B</sub>² ≤ (s<sub>A</sub>²/s<sub>B</sub>²) · F<sub>α/2, v<sub>1</sub>, v<sub>2</sub></sub></div>
         <div class="formula-desc">Intervalo de confianza para el cociente de dos varianzas poblacionales. Se usa la distribución F de Fisher. Permite verificar si dos varianzas poblacionales son iguales (si el intervalo contiene al 1).</div>
         <div class="formula-vars">
           <div class="var-row"><span class="var-sym">v<sub>1</sub></span><span class="var-def">Grados de libertad del numerador = n<sub>A</sub> − 1.</span></div>
@@ -1854,7 +1855,384 @@
 
   </div>
 
-  </div> 
+  <!-- ================= VISTA ANOVA Y HOMOCEDASTICIDAD ================= -->
+  <div id="view-anova" style="display:none;">
+
+    <!-- Subpestañas Principales de ANOVA y Homocedasticidad -->
+    <div class="anova-subtabs">
+      <button class="anova-subtab-btn active" id="subtab-btn-bartlett" onclick="switchAnovaSubtab('bartlett')">
+        🔬 1. Prueba de Bartlett
+      </button>
+      <button class="anova-subtab-btn" id="subtab-btn-levene" onclick="switchAnovaSubtab('levene')">
+        🔬 2. Prueba de Levene
+      </button>
+      <button class="anova-subtab-btn" id="subtab-btn-bp" onclick="switchAnovaSubtab('breusch-pagan')">
+        🔬 3. Breusch-Pagan / White
+      </button>
+      <button class="anova-subtab-btn" id="subtab-btn-comparativa" onclick="switchAnovaSubtab('comparativa')">
+        ⚖️ Comparativa Bartlett vs Levene
+      </button>
+      <button class="anova-subtab-btn" id="subtab-btn-oneway" onclick="switchAnovaSubtab('oneway')">
+        📊 ANOVA de 1 Factor
+      </button>
+      <button class="anova-subtab-btn" id="subtab-btn-teoria" onclick="switchAnovaSubtab('teoria')">
+        📘 Fundamentos y Supuestos
+      </button>
+    </div>
+
+    <!-- ================= SUBVISTA 1: PRUEBA DE BARTLETT ================= -->
+    <div id="anova-view-bartlett">
+      <div class="card">
+        <div class="card-title">1. Prueba de Bartlett — Para Poblaciones con Distribución Normal</div>
+        
+        <div class="grid2" style="margin-bottom:12px;">
+          <div>
+            <label>Nivel de Significancia (α)</label>
+            <select id="bartlett-alfa" style="width:100%;" onchange="cambiarAlfaGlobal(this.value)">
+              <option value="0.05" selected>α = 0.05 (Confianza: 95%)</option>
+              <option value="0.01">α = 0.01 (Confianza: 99%)</option>
+              <option value="0.10">α = 0.10 (Confianza: 90%)</option>
+            </select>
+          </div>
+          <div style="display:flex;align-items:flex-end;">
+            <div class="anova-action-bar" style="margin:0;width:100%;">
+              <button class="anova-btn-sm" style="flex:1;" onclick="cargarEscenarioBase()" title="Cargar los 3 servidores del enunciado">
+                📋 Cargar Escenario Base (3 Servidores)
+              </button>
+              <button class="anova-btn-sm" onclick="agregarGrupoHomo()">
+                ➕ Agregar Grupo
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="formula-desc" style="background:var(--formula-bg);padding:10px 14px;border-radius:8px;border-left:3px solid #00d4aa;margin-bottom:14px;">
+          <b>Prueba de Bartlett:</b> Muy sensible y potente cuando los datos provienen de poblaciones con <b>distribución normal</b>. Evalúa la igualdad de varianzas en <i>k</i> grupos independientes mediante la varianza combinada <i>S<sub>p</sub>²</i> y factor de corrección <i>C</i>.
+        </div>
+
+        <div style="font-size:12px;color:var(--text-muted);text-transform:uppercase;font-weight:700;margin-bottom:8px;">
+          Mediciones de los Grupos / Servidores:
+        </div>
+        <div id="bartlett-groups-container"></div>
+
+        <button class="btn" style="margin-top:14px;" onclick="ejecutarBartlett()">
+          ⚡ Calcular Prueba de Bartlett (8 Pasos)
+        </button>
+      </div>
+
+      <!-- Resultados 8 Pasos Bartlett -->
+      <div id="bartlett-results"></div>
+
+      <!-- Gráficos Bartlett -->
+      <div class="grid2" style="margin-top:14px;">
+        <div class="card">
+          <div class="card-title">Varianzas Muestrales por Grupo (Sᵢ²)</div>
+          <div style="height:220px;position:relative;width:100%;">
+            <canvas id="chart-bartlett-grupos"></canvas>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Distribución Chi-Cuadrado y Región de Rechazo</div>
+          <div style="height:220px;position:relative;width:100%;">
+            <canvas id="chart-bartlett-curva"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= SUBVISTA 2: PRUEBA DE LEVENE ================= -->
+    <div id="anova-view-levene" style="display:none;">
+      <div class="card">
+        <div class="card-title">2. Prueba de Levene — Robusta Frente al Alejamiento de la Normalidad</div>
+
+        <div class="grid2" style="margin-bottom:12px;">
+          <div>
+            <label>Nivel de Significancia (α)</label>
+            <select id="levene-alfa" style="width:100%;" onchange="cambiarAlfaGlobal(this.value)">
+              <option value="0.05" selected>α = 0.05 (Confianza: 95%)</option>
+              <option value="0.01">α = 0.01 (Confianza: 99%)</option>
+              <option value="0.10">α = 0.10 (Confianza: 90%)</option>
+            </select>
+          </div>
+
+          <div>
+            <label>Centro de Referencia para Desviaciones Zᵢⱼ</label>
+            <select id="levene-center-sel" style="width:100%;" onchange="anovaState.leveneCenter = this.value; ejecutarLevene();">
+              <option value="media" selected>Media Muestral (X̄ᵢ) — Levene Clásico (Enunciado)</option>
+              <option value="mediana">Mediana Muestral (X̃ᵢ) — Brown-Forsythe</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+          <div class="anova-action-bar" style="margin:0;">
+            <button class="anova-btn-sm" onclick="cargarEscenarioBase()">
+              📋 Cargar Escenario Base (3 Servidores)
+            </button>
+            <button class="anova-btn-sm" onclick="agregarGrupoHomo()">
+              ➕ Agregar Grupo
+            </button>
+          </div>
+        </div>
+
+        <div class="formula-desc" style="background:var(--formula-bg);padding:10px 14px;border-radius:8px;border-left:3px solid #0ea5e9;margin-bottom:14px;">
+          <b>Prueba de Levene:</b> Transforma cada dato en su distancia absoluta respecto a la media de su grupo: <i>Z<sub>ij</sub> = |X<sub>ij</sub> − X̄<sub>i</sub>|</i>, y luego aplica un ANOVA sobre esas distancias. Es la prueba estándar recomendada cuando no hay garantía de normalidad estricta.
+        </div>
+
+        <div style="font-size:12px;color:var(--text-muted);text-transform:uppercase;font-weight:700;margin-bottom:8px;">
+          Mediciones de los Grupos / Servidores:
+        </div>
+        <div id="levene-groups-container"></div>
+
+        <button class="btn" style="margin-top:14px;" onclick="ejecutarLevene()">
+          ⚡ Calcular Prueba de Levene (8 Pasos)
+        </button>
+      </div>
+
+      <!-- Resultados 8 Pasos Levene -->
+      <div id="levene-results"></div>
+
+      <!-- Gráficos Levene -->
+      <div class="grid2" style="margin-top:14px;">
+        <div class="card">
+          <div class="card-title">Media de Distancias Absolutas por Grupo (Z̄ᵢ.)</div>
+          <div style="height:220px;position:relative;width:100%;">
+            <canvas id="chart-levene-grupos"></canvas>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Distribución F de Fisher y Región de Rechazo</div>
+          <div style="height:220px;position:relative;width:100%;">
+            <canvas id="chart-levene-curva"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= SUBVISTA 3: BREUSCH-PAGAN Y WHITE ================= -->
+    <div id="anova-view-bp" style="display:none;">
+      <div class="card">
+        <div class="card-title">3. Prueba de Breusch-Pagan / White — Para Modelos de Regresión</div>
+
+        <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+          <button id="btn-bp-subtipo-bp" class="anova-subtab-btn active" onclick="cambiarBpTipo('breusch-pagan')">
+            🔹 Breusch-Pagan (Lineal p = 1)
+          </button>
+          <button id="btn-bp-subtipo-white" class="anova-subtab-btn" onclick="cambiarBpTipo('white')">
+            🔸 White (Cuadrático p = 2)
+          </button>
+        </div>
+
+        <div class="grid2" style="margin-bottom:12px;">
+          <div>
+            <label>Nivel de Significancia (α)</label>
+            <select id="bp-alfa" style="width:100%;" onchange="cambiarAlfaGlobal(this.value)">
+              <option value="0.05" selected>α = 0.05 (Confianza: 95%)</option>
+              <option value="0.01">α = 0.01 (Confianza: 99%)</option>
+              <option value="0.10">α = 0.10 (Confianza: 90%)</option>
+            </select>
+          </div>
+
+          <div style="display:flex;align-items:flex-end;">
+            <div class="anova-action-bar" style="margin:0;width:100%;">
+              <button class="anova-btn-sm" style="flex:1;" onclick="cargarEscenarioRegresion()">
+                📋 Cargar Escenario del Enunciado (n=30, R²=0.18)
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="formula-desc" style="background:var(--formula-bg);padding:10px 14px;border-radius:8px;border-left:3px solid #f59e0b;margin-bottom:14px;">
+          <b>Regresión Auxiliar:</b> Analiza si la varianza de los residuos al cuadrado (<i>eᵢ²</i>) aumenta o disminuye sistemáticamente al variar <i>X</i>. Usa el estadístico Multiplicador de Lagrange: <b>LM = n · R²<sub>aux</sub></b>.
+        </div>
+
+        <div style="display:flex;gap:16px;margin-bottom:12px;flex-wrap:wrap;">
+          <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;">
+            <input type="radio" name="bp-modo-radio" value="resumen" checked onchange="cambiarRegModo(this.value)"> Modo Resumen (n y R²<sub>aux</sub> del software)
+          </label>
+          <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;">
+            <input type="radio" name="bp-modo-radio" value="bruto" onchange="cambiarRegModo(this.value)"> Modo Datos en Bruto (Pares X, Y)
+          </label>
+        </div>
+
+        <div id="bp-modo-resumen" class="grid2">
+          <div>
+            <label>Tamaño de Muestra (n pruebas)</label>
+            <input type="number" id="bp-reg-n" value="30" min="5" step="1" oninput="anovaState.regResumen.n = parseFloat(this.value); ejecutarBreuschPaganWhite();">
+          </div>
+          <div>
+            <label>Ajuste Regresión Auxiliar (R²<sub>aux</sub>)</label>
+            <input type="number" id="bp-reg-r2" value="0.18" min="0" max="1" step="0.01" oninput="anovaState.regResumen.r2 = parseFloat(this.value); ejecutarBreuschPaganWhite();">
+          </div>
+        </div>
+
+        <div id="bp-modo-bruto" style="display:none;">
+          <label>Pares de Observaciones (X = Usuarios concurrentes, Y = Tiempo respuesta ms):</label>
+          <textarea id="bp-reg-datos" style="width:100%;height:120px;font-family:monospace;background:var(--bg-input);border:1px solid var(--border-color);border-radius:8px;padding:8px;color:var(--text-main);"
+                    oninput="anovaState.regDatosBrutos = this.value; ejecutarBreuschPaganWhite();">10, 62.4
+15, 68.1
+18, 72.3
+20, 74.0
+22, 77.2
+25, 80.5
+28, 83.1
+30, 85.9
+32, 89.2
+35, 91.8
+38, 96.0
+40, 97.5
+42, 102.1
+45, 104.3
+48, 109.8
+50, 110.2
+52, 115.4
+55, 118.0
+58, 122.9
+60, 123.5
+62, 129.0
+65, 131.2
+68, 137.4
+70, 138.1
+72, 144.5
+75, 147.0
+78, 153.2
+80, 155.0
+85, 163.5
+90, 172.0</textarea>
+        </div>
+
+        <button class="btn" style="margin-top:14px;" onclick="ejecutarBreuschPaganWhite()">
+          ⚡ Calcular Estadístico LM (8 Pasos)
+        </button>
+      </div>
+
+      <!-- Resultados 8 Pasos BP/White -->
+      <div id="bp-results"></div>
+
+      <!-- Gráfico Curva Chi2 BP/White -->
+      <div class="card" style="margin-top:14px;">
+        <div class="card-title">Distribución Chi-Cuadrado y Región de Rechazo (LM)</div>
+        <div style="height:220px;position:relative;width:100%;">
+          <canvas id="chart-bp-curva"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= SUBVISTA 4: COMPARATIVA DIRECTA BARTLETT VS LEVENE ================= -->
+    <div id="anova-view-comparativa" style="display:none;">
+      <div class="card">
+        <div class="card-title">Comparativa Didáctica: Bartlett vs Levene en el Escenario Base</div>
+        <p style="font-size:13px;color:var(--text-desc);margin-bottom:12px;line-height:1.6;">
+          Ambas pruebas se ejecutan simultáneamente sobre las mismas 3 series de latencia (Servidor 1, Servidor 2 y Servidor 3) para contrastar cómo reaccionan ante el tamaño muestral ($n = 4$, $N = 12$).
+        </p>
+        <button class="btn" onclick="ejecutarComparativa()">
+          ⚖️ Actualizar Comparativa Bartlett vs Levene
+        </button>
+      </div>
+
+      <div id="comparativa-results"></div>
+    </div>
+
+    <!-- ================= SUBVISTA 5: ANOVA DE 1 FACTOR ================= -->
+    <div id="anova-view-oneway" style="display:none;">
+      <div class="card">
+        <div class="card-title">Análisis de Varianza (ANOVA de un Factor — DCA)</div>
+        <p style="font-size:13px;color:var(--text-desc);margin-bottom:12px;line-height:1.6;">
+          Una vez verificado el supuesto de <b>homocedasticidad</b> (igualdad de varianzas), se evalúa si las medias poblacionales de los <i>k</i> tratamientos o servidores son iguales:
+          <br>
+          <b>H₀: μ₁ = μ₂ = ... = μ<sub>k</sub></b> vs <b>H₁: Al menos dos medias difieren</b>.
+        </p>
+        <button class="btn" onclick="ejecutarOneWayANOVA()">
+          📊 Calcular ANOVA de un Factor
+        </button>
+      </div>
+
+      <div id="anova-oneway-results"></div>
+    </div>
+
+    <!-- ================= SUBVISTA 6: TEORÍA Y SUPUESTOS ================= -->
+    <div id="anova-view-teoria" style="display:none;">
+      <div class="card">
+        <div class="card-title">1. ¿Qué es la Homocedasticidad y por qué es crucial? <span class="badge badge-green">Concepto</span></div>
+        <div class="formula-block">
+          <div class="formula-name">Definición</div>
+          <div class="formula-main"><b>Var(εᵢ) = σ²</b> (Constante para todo grupo o nivel de X)</div>
+          <div class="formula-desc">
+            La homocedasticidad establece que la variabilidad de las observaciones o errores es uniforme a través de todos los grupos o valores de las variables predictoras.
+          </div>
+        </div>
+
+        <div class="formula-block blue">
+          <div class="formula-name">Consecuencia de la Heterocedasticidad</div>
+          <div class="formula-desc">
+            Si existe heterocedasticidad (varianzas desiguales):
+            <br>• En <b>ANOVA</b>: La tasa de error Tipo I (falsos positivos) se infla, invalidando el estadístico F de Fisher.
+            <br>• En <b>Regresión Lineal</b>: Los estimadores MCO siguen siendo insesgados pero dejan de tener varianza mínima (pierden la propiedad MELI / BLUE), haciendo que los errores estándar y los intervalos de confianza sean incorrectos.
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">2. Los Tres Supuestos Fundamentales de ANOVA <span class="badge badge-blue">Requisitos</span></div>
+        <div class="formula-block blue">
+          <div class="formula-name">1. Normalidad</div>
+          <div class="formula-desc">Las observaciones dentro de cada grupo o los errores del modelo provienen de poblaciones con distribución normal: <i>Yᵢⱼ ~ N(μᵢ, σ²)</i>.</div>
+        </div>
+        <div class="formula-block blue">
+          <div class="formula-name">2. Homocedasticidad</div>
+          <div class="formula-desc">Las varianzas poblacionales de los <i>k</i> grupos son homogéneas: <i>σ₁² = σ₂² = ... = σ<sub>k</sub>²</i>.</div>
+        </div>
+        <div class="formula-block blue">
+          <div class="formula-name">3. Independencia</div>
+          <div class="formula-desc">Las mediciones u observaciones son independientes entre sí y dentro de cada grupo (garantizado mediante aleatorización del experimento).</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">3. Comparativa entre Pruebas de Homocedasticidad <span class="badge badge-amber">Criterios de Elección</span></div>
+        <div class="tbl-wrap">
+          <table class="anova-table">
+            <thead>
+              <tr>
+                <th style="text-align:left;">Prueba</th>
+                <th>Contexto de Uso</th>
+                <th>Sensibilidad a Normalidad</th>
+                <th>Distribución Asintótica</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="text-align:left;font-weight:700;color:#00d4aa;">Bartlett</td>
+                <td>Comparación de <i>k</i> grupos independientes</td>
+                <td><b>Muy sensible</b> (requiere estricta normalidad)</td>
+                <td>Chi-Cuadrado (χ² con k − 1 gl)</td>
+              </tr>
+              <tr>
+                <td style="text-align:left;font-weight:700;color:#0ea5e9;">Levene</td>
+                <td>Comparación de <i>k</i> grupos independientes</td>
+                <td><b>Robusta</b> (no requiere normalidad estricta)</td>
+                <td>F de Fisher (k − 1, N − k gl)</td>
+              </tr>
+              <tr>
+                <td style="text-align:left;font-weight:700;color:#f59e0b;">Breusch-Pagan</td>
+                <td>Modelos de Regresión (residuos al cuadrado)</td>
+                <td>Requiere normalidad de los errores</td>
+                <td>Chi-Cuadrado (χ² con p gl)</td>
+              </tr>
+              <tr>
+                <td style="text-align:left;font-weight:700;color:#a78bfa;">White</td>
+                <td>Modelos de Regresión (términos no lineales)</td>
+                <td><b>No paramétrica / Robusta</b></td>
+                <td>Chi-Cuadrado (χ² con p gl)</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <script src="math.js"></script>
@@ -1863,6 +2241,7 @@
   <script src="calculator.js"></script>
   <script src="analysis.js"></script>
   <script src="autolavado.js"></script>
+  <script src="anova.js"></script>
 
 </body>
 </html>

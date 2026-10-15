@@ -24,6 +24,12 @@ function toggleAnalysisMode() {
     viewFormulas.style.display = 'none';
     viewSim.style.display = 'none';
     viewCalc.style.display = 'none';
+    const vAutolavado = document.getElementById('view-autolavado');
+    if (vAutolavado) vAutolavado.style.display = 'none';
+    const vFormEst = document.getElementById('view-form-est');
+    if (vFormEst) vFormEst.style.display = 'none';
+    const vAnova = document.getElementById('view-anova');
+    if (vAnova) vAnova.style.display = 'none';
     distSelector.disabled = true;
     viewAnalysis.style.display = 'block';
   } else {

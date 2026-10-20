@@ -26,23 +26,19 @@ function toggleTheme() {
 function switchTab(tab) {
   activeTab = tab;
   
-  // 1. Actualizar estado activo de los botones en el menú (AGREGADO form-est y anova)
+  // 1. Actualizar estado activo de los botones en el menú (AGREGADO form-est)
   document.getElementById('tab-btn-formulas').classList.toggle('active', tab === 'formulas');
   document.getElementById('tab-btn-sim').classList.toggle('active', tab === 'sim');
   document.getElementById('tab-btn-calc').classList.toggle('active', tab === 'calc');
   document.getElementById('tab-btn-autolavado').classList.toggle('active', tab === 'autolavado');
-  document.getElementById('tab-btn-form-est').classList.toggle('active', tab === 'form-est');
-  const btnAnova = document.getElementById('tab-btn-anova');
-  if (btnAnova) btnAnova.classList.toggle('active', tab === 'anova');
+  document.getElementById('tab-btn-form-est').classList.toggle('active', tab === 'form-est'); // <-- NUEVO
   
-  // 2. Ocultar/Mostrar vistas principales (AGREGADO form-est y anova)
+  // 2. Ocultar/Mostrar vistas principales (AGREGADO form-est)
   document.getElementById('view-formulas').style.display = tab === 'formulas' ? 'block' : 'none';
   document.getElementById('view-sim').style.display = tab === 'sim' ? 'block' : 'none';
   document.getElementById('view-calc').style.display = tab === 'calc' ? 'block' : 'none';
   document.getElementById('view-autolavado').style.display = tab === 'autolavado' ? 'block' : 'none';
-  document.getElementById('view-form-est').style.display = tab === 'form-est' ? 'block' : 'none';
-  const viewAnova = document.getElementById('view-anova');
-  if (viewAnova) viewAnova.style.display = tab === 'anova' ? 'block' : 'none';
+  document.getElementById('view-form-est').style.display = tab === 'form-est' ? 'block' : 'none'; // <-- NUEVO
 
   // 3. Lógica específica para la vista de Calculadoras (Se mantiene igual)
   if (tab === 'calc') {
@@ -77,32 +73,9 @@ function switchTab(tab) {
 
   // 4. Lógica específica para inicializar Autolavado
   if (tab === 'autolavado') {
-    const icon = document.getElementById('dist-icon');
-    const title = document.getElementById('main-title');
-    const subtitle = document.getElementById('main-subtitle');
-    if (icon) icon.textContent = '🚗';
-    if (title) title.textContent = 'Simulación de Autolavado';
-    if (subtitle) subtitle.textContent = 'Modelo de Colas y Tiempos por Etapas';
     if (typeof initAutolavado === 'function') {
       initAutolavado();
     }
-  }
-
-  // 5. Lógica específica para inicializar ANOVA
-  if (tab === 'anova') {
-    const icon = document.getElementById('dist-icon');
-    const title = document.getElementById('main-title');
-    const subtitle = document.getElementById('main-subtitle');
-    if (icon) icon.textContent = '🧪';
-    if (title) title.textContent = 'ANOVA y Pruebas de Homocedasticidad';
-    if (subtitle) subtitle.textContent = 'Bartlett, Levene y Breusch-Pagan — Metodología de los 8 Pasos';
-    if (typeof initAnova === 'function') {
-      initAnova();
-    }
-  }
-
-  if (tab === 'formulas' || tab === 'sim' || tab === 'calc') {
-    if (typeof changeDistribution === 'function') changeDistribution();
   }
 }
 

@@ -163,111 +163,10 @@ function generarTStudent(df) {
 }
 
 // =====================================================================
-// --- LÓGICA CHI-CUADRADO (𝒳²) Y F DE FISHER (ALTA PRECISIÓN ANALÍTICA) ---
+// --- LÓGICA CHI-CUADRADO (𝒳²) ---
 // =====================================================================
 
-// Logaritmo natural de la función Gamma (Aproximación Lanczos g=7)
-function logGamma(x) {
-  const p = [0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
-  const g = 7;
-  if (x < 0.5) {
-    return Math.log(Math.PI / Math.sin(Math.PI * x)) - logGamma(1 - x);
-  }
-  x -= 1;
-  let a = p[0];
-  for (let i = 1; i < g + 2; i++) {
-    a += p[i] / (x + i);
-  }
-  const t = x + g + 0.5;
-  return 0.5 * Math.log(2 * Math.PI) + (x + 0.5) * Math.log(t) - t + Math.log(a);
-}
-
-// Función Gamma Incompleta Regularizada P(a, x) = γ(a, x) / Γ(a)
-function gammpSeries(a, x) {
-  const itmax = 120, eps = 1e-12;
-  const gln = logGamma(a);
-  let ap = a, sumVal = 1.0 / a, delta = sumVal;
-  for (let n = 1; n <= itmax; n++) {
-    ap += 1.0;
-    delta *= x / ap;
-    sumVal += delta;
-    if (Math.abs(delta) < Math.abs(sumVal) * eps) {
-      return sumVal * Math.exp(-x + a * Math.log(x) - gln);
-    }
-  }
-  return sumVal * Math.exp(-x + a * Math.log(x) - gln);
-}
-
-function gammqContFrac(a, x) {
-  const itmax = 120, eps = 1e-12, fpmin = 1e-30;
-  const gln = logGamma(a);
-  let b = x + 1.0 - a, c = 1.0 / fpmin, d = 1.0 / b, h = d;
-  for (let i = 1; i <= itmax; i++) {
-    const an = -i * (i - a);
-    b += 2.0;
-    d = an * d + b;
-    if (Math.abs(d) < fpmin) d = fpmin;
-    c = b + an / c;
-    if (Math.abs(c) < fpmin) c = fpmin;
-    d = 1.0 / d;
-    const delVal = d * c;
-    h *= delVal;
-    if (Math.abs(delVal - 1.0) < eps) break;
-  }
-  return Math.exp(-x + a * Math.log(x) - gln) * h;
-}
-
-function gammp(a, x) {
-  if (x <= 0) return 0.0;
-  if (x < a + 1.0) {
-    return gammpSeries(a, x);
-  } else {
-    return 1.0 - gammqContFrac(a, x);
-  }
-}
-
-// Función Beta Incompleta Regularizada I_x(a, b)
-function betacf(a, b, x) {
-  const maxit = 120, eps = 1e-12, fpmin = 1e-30;
-  const qab = a + b, qap = a + 1.0, qam = a - 1.0;
-  let c = 1.0, d = 1.0 - qab * x / qap;
-  if (Math.abs(d) < fpmin) d = fpmin;
-  d = 1.0 / d;
-  let h = d;
-  for (let m = 1; m <= maxit; m++) {
-    const m2 = 2 * m;
-    let aa = m * (b - m) * x / ((qam + m2) * (a + m2));
-    d = 1.0 + aa * d;
-    if (Math.abs(d) < fpmin) d = fpmin;
-    c = 1.0 + aa / c;
-    if (Math.abs(c) < fpmin) c = fpmin;
-    d = 1.0 / d;
-    h *= d * c;
-    aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2));
-    d = 1.0 + aa * d;
-    if (Math.abs(d) < fpmin) d = fpmin;
-    c = 1.0 + aa / c;
-    if (Math.abs(c) < fpmin) c = fpmin;
-    d = 1.0 / d;
-    const delVal = d * c;
-    h *= delVal;
-    if (Math.abs(delVal - 1.0) < eps) break;
-  }
-  return h;
-}
-
-function betai(a, b, x) {
-  if (x <= 0.0) return 0.0;
-  if (x >= 1.0) return 1.0;
-  const bt = Math.exp(logGamma(a + b) - logGamma(a) - logGamma(b) + a * Math.log(x) + b * Math.log(1.0 - x));
-  if (x < (a + 1.0) / (a + b + 2.0)) {
-    return bt * betacf(a, b, x) / a;
-  } else {
-    return 1.0 - bt * betacf(b, a, 1.0 - x) / b;
-  }
-}
-
-// Función de Densidad de Probabilidad (PDF) de Chi-Cuadrado
+// Función de Densidad de Probabilidad (PDF)
 function chiCuadradoPDF(x, df) {
   if (x <= 0) return 0;
   const num = Math.pow(x, (df / 2) - 1) * Math.exp(-x / 2);
@@ -275,10 +174,20 @@ function chiCuadradoPDF(x, df) {
   return num / den;
 }
 
-// Función de Distribución Acumulada (CDF) de Chi-Cuadrado
+// Función de Distribución Acumulada (CDF) mediante regla de Simpson
 function chiCuadradoCDF(x, df) {
   if (x <= 0) return 0;
-  return gammp(df / 2.0, x / 2.0);
+  let sum = 0;
+  const steps = 100;
+  const h = x / steps;
+  for (let i = 0; i <= steps; i++) {
+    const t = i * h;
+    const ft = chiCuadradoPDF(t, df);
+    if (i === 0 || i === steps) sum += ft;
+    else if (i % 2 === 1) sum += 4 * ft;
+    else sum += 2 * ft;
+  }
+  return (sum * h) / 3;
 }
 
 // Generador de simulación (Método: Suma de Z²)
@@ -293,26 +202,30 @@ function generarChiCuadrado(df) {
   return chi2;
 }
 
-// Función Cuantil (Inversa de la CDF) de Chi-Cuadrado — Bisección de Alta Precisión
+// Función Cuantil (Inversa de la CDF) de Chi-Cuadrado — Búsqueda por Bisección
+// Devuelve el valor x tal que P(𝒳² ≤ x) = p, para los grados de libertad dados.
 function invChiCuadradoCDF(p, df) {
   if (p <= 0) return 0;
   if (p >= 1) return Infinity;
 
-  let low = 0.0;
-  let high = Math.max(df * 5.0 + 30.0, 50.0);
-  while (chiCuadradoCDF(high, df) < p) {
-    high *= 2.0;
-  }
+  let low = 0, high = df + 4 * Math.sqrt(2 * df) + 20;
+  const tolerance = 1e-8;
+  const maxIter = 200;
 
-  for (let i = 0; i < 80; i++) {
-    const mid = (low + high) / 2.0;
+  // Bisección para encontrar la raíz de chiCuadradoCDF(x, df) - p = 0
+  for (let i = 0; i < maxIter; i++) {
+    const mid = (low + high) / 2;
     const cdfMid = chiCuadradoCDF(mid, df);
-    if (Math.abs(cdfMid - p) < 1e-12) return mid;
+    if (Math.abs(cdfMid - p) < tolerance) return mid;
     if (cdfMid < p) low = mid;
     else high = mid;
   }
-  return (low + high) / 2.0;
+  return (low + high) / 2;
 }
+
+// =====================================================================
+// --- LÓGICA F DE FISHER ---
+// =====================================================================
 
 // Función de Densidad de Probabilidad (PDF) de F de Fisher
 function fisherPDF(x, d1, d2) {
@@ -322,32 +235,39 @@ function fisherPDF(x, d1, d2) {
   return num / den;
 }
 
-// Función de Distribución Acumulada (CDF) de F de Fisher
+// Función de Distribución Acumulada (CDF) de F de Fisher mediante regla de Simpson
 function fisherCDF(x, d1, d2) {
   if (x <= 0) return 0;
-  const y = (d1 * x) / (d1 * x + d2);
-  return betai(d1 / 2.0, d2 / 2.0, y);
+  let sum = 0;
+  const steps = 200;
+  const h = x / steps;
+  for (let i = 0; i <= steps; i++) {
+    const t = i * h;
+    const ft = fisherPDF(t, d1, d2);
+    if (i === 0 || i === steps) sum += ft;
+    else if (i % 2 === 1) sum += 4 * ft;
+    else sum += 2 * ft;
+  }
+  return (sum * h) / 3;
 }
 
-// Función Cuantil (Inversa de la CDF) de F de Fisher — Bisección de Alta Precisión
+// Función Cuantil (Inversa de la CDF) de F de Fisher — Búsqueda por Bisección
 function invFisherCDF(p, d1, d2) {
   if (p <= 0) return 0;
   if (p >= 1) return Infinity;
 
-  let low = 0.0;
-  let high = 100.0;
-  while (fisherCDF(high, d1, d2) < p) {
-    high *= 2.0;
-  }
+  let low = 0, high = 50;
+  const tolerance = 1e-8;
+  const maxIter = 200;
 
-  for (let i = 0; i < 80; i++) {
-    const mid = (low + high) / 2.0;
+  for (let i = 0; i < maxIter; i++) {
+    const mid = (low + high) / 2;
     const cdfMid = fisherCDF(mid, d1, d2);
-    if (Math.abs(cdfMid - p) < 1e-12) return mid;
+    if (Math.abs(cdfMid - p) < tolerance) return mid;
     if (cdfMid < p) low = mid;
     else high = mid;
   }
-  return (low + high) / 2.0;
+  return (low + high) / 2;
 }
 
 // Generador de variables aleatorias F de Fisher (Método: cociente de Chi-Cuadradas)

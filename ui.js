@@ -31,7 +31,8 @@ function switchTab(tab) {
   document.getElementById('tab-btn-sim').classList.toggle('active', tab === 'sim');
   document.getElementById('tab-btn-calc').classList.toggle('active', tab === 'calc');
   document.getElementById('tab-btn-autolavado').classList.toggle('active', tab === 'autolavado');
-  document.getElementById('tab-btn-form-est').classList.toggle('active', tab === 'form-est'); // <-- NUEVO
+  document.getElementById('tab-btn-form-est').classList.toggle('active', tab === 'form-est');
+  document.getElementById('tab-btn-homo').classList.toggle('active', tab === 'homo');
   
   // 2. Ocultar/Mostrar vistas principales (AGREGADO form-est)
   document.getElementById('view-formulas').style.display = tab === 'formulas' ? 'block' : 'none';
@@ -39,7 +40,8 @@ function switchTab(tab) {
   document.getElementById('view-calc').style.display = tab === 'calc' ? 'block' : 'none';
   document.getElementById('view-autolavado').style.display = tab === 'autolavado' ? 'block' : 'none';
   document.getElementById('view-form-est').style.display = tab === 'form-est' ? 'block' : 'none'; // <-- NUEVO
-
+  document.getElementById('view-homo').style.display = tab === 'homo' ? 'block' : 'none';
+  
   // 3. Lógica específica para la vista de Calculadoras (Se mantiene igual)
   if (tab === 'calc') {
     document.getElementById('calc-warning').style.display = 'none';
@@ -75,6 +77,12 @@ function switchTab(tab) {
   if (tab === 'autolavado') {
     if (typeof initAutolavado === 'function') {
       initAutolavado();
+    }
+  }
+
+  if (tab === 'homo') {
+    if (typeof ejecutarPruebasHomocedasticidad === 'function') {
+      ejecutarPruebasHomocedasticidad();
     }
   }
 }

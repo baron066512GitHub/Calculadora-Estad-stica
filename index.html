@@ -39,6 +39,7 @@
     <button class="tab" id="tab-btn-calc" onclick="switchTab('calc')">📊 Calculadora P</button> 
     <button class="tab" id="tab-btn-autolavado" onclick="switchTab('autolavado')">🚗 Autolavado</button>
     <button class="tab" id="tab-btn-form-est" onclick="switchTab('form-est')">📘 Fórmulas Descriptiva</button>
+    <button class="tab" id="tab-btn-homo" onclick="switchTab('homo')">📈 Breusch-Pagan / White</button>
   </div>
 
   <div id="view-formulas">
@@ -1577,6 +1578,110 @@
   </div>
 
   </div> 
+
+  <!-- ================= VISTA: PRUEBAS DE HOMOCEDASTICIDAD ================= -->
+  <div id="view-homo" style="display:none;">
+    
+    <!-- Tarjeta Teórica -->
+    <div class="card">
+      <div class="card-title">1. Fórmulas de Homocedasticidad <span class="badge badge-purple">Econometría / Inferencia</span></div>
+      
+      <div class="formula-block purple">
+        <div class="formula-name">Hipótesis del Contraste</div>
+        <div class="formula-main"><b>H₀:</b> σᵢ² = σ² (Homocedasticidad) &nbsp;&nbsp;|&nbsp;&nbsp; <b>H₁:</b> σᵢ² ≠ σ² (Heterocedasticidad)</div>
+        <div class="formula-desc">Si el <b>p-valor &lt; α</b> (o si LM &gt; 𝒳²<sub>crítico</sub>), se rechaza H₀ y se concluye que existe heterocedasticidad en los residuos.</div>
+      </div>
+
+      <div class="grid2">
+        <div class="formula-block blue" style="margin-bottom:0;">
+          <div class="formula-name">Prueba de Breusch-Pagan (Koeker)</div>
+          <div class="formula-main" style="font-size:15px;">Regresión Aux: <b>ûᵢ² = δ₀ + δ₁Xᵢ + vᵢ</b></div>
+          <div class="formula-main" style="font-size:16px;"><b>LM<sub>BP</sub> = n · R²<sub>aux</sub> ~ 𝒳²(1)</b></div>
+          <div class="formula-desc">Detecta heterocedasticidad linealmente dependiente de la variable explicativa X.</div>
+        </div>
+
+        <div class="formula-block amber" style="margin-bottom:0;">
+          <div class="formula-name">Prueba General de White</div>
+          <div class="formula-main" style="font-size:15px;">Regresión Aux: <b>ûᵢ² = δ₀ + δ₁Xᵢ + δ₂Xᵢ² + vᵢ</b></div>
+          <div class="formula-main" style="font-size:16px;"><b>LM<sub>W</sub> = n · R²<sub>aux</sub> ~ 𝒳²(2)</b></div>
+          <div class="formula-desc">Incluye términos cuadráticos para capturar formas no lineales de heterocedasticidad.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tarjeta de Ingreso de Datos -->
+    <div class="card">
+      <div class="card-title">2. Datos de la Regresión (Mínimos Cuadrados Ordinarios)</div>
+      <div class="grid2" style="margin-bottom: 12px;">
+        <div>
+          <label>Variable Independiente (X) — separada por comas o espacios:</label>
+          <textarea id="homo-x" rows="3" style="width:100%; background:var(--bg-input); border:1px solid var(--border-color); border-radius:8px; color:var(--text-main); font-family:monospace; font-size:13px; padding:10px; outline:none;">1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15</textarea>
+        </div>
+        <div>
+          <label>Variable Dependiente (Y) — separada por comas o espacios:</label>
+          <textarea id="homo-y" rows="3" style="width:100%; background:var(--bg-input); border:1px solid var(--border-color); border-radius:8px; color:var(--text-main); font-family:monospace; font-size:13px; padding:10px; outline:none;">2.5, 4.1, 5.8, 8.9, 10.2, 13.5, 12.1, 18.4, 16.0, 23.5, 20.1, 28.9, 22.4, 34.2, 26.8</textarea>
+        </div>
+      </div>
+
+      <div class="grid2" style="margin-bottom: 12px;">
+        <div>
+          <label>Nivel de Significancia (α)</label>
+          <select id="homo-alpha" onchange="ejecutarPruebasHomocedasticidad()" style="width:100%;">
+            <option value="0.01">1% (α = 0.01)</option>
+            <option value="0.05" selected>5% (α = 0.05)</option>
+            <option value="0.10">10% (α = 0.10)</option>
+          </select>
+        </div>
+        <div style="display:flex; align-items:flex-end;">
+          <button class="btn" style="margin-top:0;" onclick="ejecutarPruebasHomocedasticidad()">▶ Ejecutar Pruebas BP y White</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Resultados -->
+    <div class="card" id="homo-results-card" style="display:none;">
+      <div class="card-title">3. Resultados del Contraste y Regresión</div>
+      <div id="homo-ols-summary" style="margin-bottom: 14px; padding: 10px; background: var(--formula-bg); border-radius: 8px; font-family: monospace; font-size: 13px;"></div>
+      
+      <div class="grid2">
+        <div class="card" id="homo-bp-box" style="margin-bottom:0; border-left: 4px solid #0ea5e9;"></div>
+        <div class="card" id="homo-white-box" style="margin-bottom:0; border-left: 4px solid #f59e0b;"></div>
+      </div>
+    </div>
+
+    <!-- Gráfico de Residuos -->
+    <div class="card" id="homo-chart-card" style="display:none;">
+      <div class="card-title">4. Diagnóstico Visual: Residuos al Cuadrado (ûᵢ²) vs Variable X</div>
+      <canvas id="homo-canvas" style="height:180px;"></canvas>
+      <div class="legend" style="margin-top:6px;">
+        <span style="color:#00d4aa">●</span> Puntos (Xᵢ, ûᵢ²) &nbsp;&nbsp; 
+        <span style="color:#0ea5e9">─</span> Tendencia Breusch-Pagan (Lineal) &nbsp;&nbsp; 
+        <span style="color:#f59e0b">---</span> Tendencia White (Cuadrática)
+      </div>
+    </div>
+
+    <!-- Tabla de Residuos Paso a Paso -->
+    <div class="card" id="homo-table-card" style="display:none;">
+      <div class="card-title">5. Tabla de Cálculo de Residuos (MCO)</div>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>i</th>
+              <th>Xᵢ</th>
+              <th>Yᵢ</th>
+              <th>Ŷᵢ (Estimado)</th>
+              <th>ûᵢ (Residuo)</th>
+              <th>ûᵢ² (Residuo Cuadrado)</th>
+            </tr>
+          </thead>
+          <tbody id="homo-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+  
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <script src="math.js"></script>
